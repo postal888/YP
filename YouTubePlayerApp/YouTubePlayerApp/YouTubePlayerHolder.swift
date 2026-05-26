@@ -4,16 +4,16 @@ import YouTubePlayerKit
 
 @MainActor
 final class YouTubePlayerHolder: ObservableObject {
-    /// Плеер создаётся с placeholder source, потому что YouTubePlayerKit
-    /// не позволяет инициализировать YouTubePlayer без source.
+    /// Placeholder source required by YouTubePlayerKit 2.x init.
     private(set) var player: YouTubePlayer = YouTubePlayer(
         source: .video(id: "dQw4w9WgXcQ"),
         parameters: .init(
             autoPlay: false,
-            showCaptions: true,
             showControls: true,
-            language: "pt",
             showFullscreenButton: true,
+            language: "pt",
+            captionLanguage: "pt",
+            showCaptions: true,
             restrictRelatedVideosToSameChannel: true
         ),
         configuration: .init(
@@ -58,8 +58,9 @@ final class YouTubePlayerHolder: ObservableObject {
 
     func load(videoID: String, captionLanguage: String) {
         var parameters = player.parameters
-        parameters.captionLanguage = captionLanguage
         parameters.language = captionLanguage
+        parameters.captionLanguage = captionLanguage
+        parameters.showCaptions = true
         player.parameters = parameters
 
         Task { @MainActor in
@@ -97,7 +98,7 @@ final class YouTubePlayerHolder: ObservableObject {
         player.statePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
-                guard let self = self else { return }
+                guard let self else { return }
                 switch state {
                 case .idle:
                     self.onState?("Ожидание")
@@ -116,31 +117,40 @@ final class YouTubePlayerHolder: ObservableObject {
     private func subscribeToPlaybackState() {
         player.playbackStatePublisher
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] pb in
-                guard let self = self else { return }
-                switch pb {
-                case .unstarted:
-                    self.onState?("Ожидание")
-                case .ended:
-                    self.onState?("Завершено")
+            .sink { [weak self] playbackState in
+                guard let self else { return }
+                self.onState?(Self.playbackStatusText(for: playbackState))
+                if playbackState == .ended {
                     self.onEnded?()
-                case .playing:
-                    self.onState?("Воспроизведение")
-                case .paused:
-                    self.onState?("Пауза")
-                case .buffering:
-                    self.onState?("Буферизация")
-                case .cued:
-                    self.onState?("Готов")
                 }
             }
             .store(in: &cancellables)
     }
 
+    /// PlaybackState in YouTubePlayerKit 2.x is a struct backed by Int, not an enum.
+    private static func playbackStatusText(for playbackState: YouTubePlayer.PlaybackState) -> String {
+        switch playbackState.value {
+        case YouTubePlayer.PlaybackState.unstarted.value:
+            return "Ожидание"
+        case YouTubePlayer.PlaybackState.ended.value:
+            return "Завершено"
+        case YouTubePlayer.PlaybackState.playing.value:
+            return "Воспроизведение"
+        case YouTubePlayer.PlaybackState.paused.value:
+            return "Пауза"
+        case YouTubePlayer.PlaybackState.buffering.value:
+            return "Буферизация"
+        case YouTubePlayer.PlaybackState.cued.value:
+            return "Готов"
+        default:
+            return playbackState.description
+        }
+    }
+
     private func startTimer() {
         timeTimer?.invalidate()
         timeTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
+            guard let self else { return }
             Task { @MainActor in
                 let cur = (try? await self.player.getCurrentTime().converted(to: .seconds).value) ?? 0
                 let dur = (try? await self.player.getDuration().converted(to: .seconds).value) ?? 0
