@@ -162,6 +162,9 @@ enum BridgeMessage: Equatable {
                 self = .error(message)
             }
 
+        case "ping":
+            return nil
+
         default:
             return nil
         }
