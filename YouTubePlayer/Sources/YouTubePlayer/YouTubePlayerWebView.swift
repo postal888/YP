@@ -15,6 +15,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         let webConfiguration = WKWebViewConfiguration()
         webConfiguration.allowsInlineMediaPlayback = true
         webConfiguration.mediaTypesRequiringUserActionForPlayback = []
+        webConfiguration.defaultWebpagePreferences.allowsContentJavaScript = true
 
         let userContentController = WKUserContentController()
         userContentController.add(context.coordinator, name: "youtube")
@@ -48,6 +49,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         var configuration: YouTubePlayerConfiguration
         weak var webView: WKWebView?
         private let controller: YouTubePlayerController
+        private var usingProxyFallback = false
 
         init(controller: YouTubePlayerController, configuration: YouTubePlayerConfiguration? = nil) {
             self.controller = controller
@@ -56,14 +58,37 @@ struct YouTubePlayerWebView: UIViewRepresentable {
 
         func loadPlayer(configuration: YouTubePlayerConfiguration, in webView: WKWebView) {
             self.configuration = configuration
+            usingProxyFallback = false
+            controller.markLoadingStarted()
+            controller.scheduleLoadTimeout()
 
-            guard let request = YouTubePlayerWebLoader.proxyRequest(
-                for: configuration,
-                captionLanguage: configuration.captionLanguage
-            ) else {
-                controller.handleBridgeMessage(.error("Failed to build YouTube proxy request"))
+            let html = YouTubePlayerWebLoader.inlineHTML(for: configuration)
+            webView.loadHTMLString(html, baseURL: URL(string: YouTubePlayerWebLoader.referer)!)
+        }
+
+        private func loadProxyFallback(in webView: WKWebView) {
+            guard !usingProxyFallback,
+                  let request = YouTubePlayerWebLoader.proxyRequest(
+                    for: configuration,
+                    captionLanguage: configuration.captionLanguage
+                  ) else {
+                controller.handleBridgeMessage(.error("Failed to load YouTube player"))
                 return
             }
+
+            usingProxyFallback = true
+            controller.markLoadingStarted()
+            controller.scheduleLoadTimeout()
+
+            let userContentController = webView.configuration.userContentController
+            userContentController.removeAllUserScripts()
+            userContentController.addUserScript(
+                WKUserScript(
+                    source: YouTubePlayerWebLoader.bridgeScriptSource,
+                    injectionTime: .atDocumentStart,
+                    forMainFrameOnly: true
+                )
+            )
 
             webView.load(request)
         }
@@ -94,15 +119,29 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             webView?.evaluateJavaScript(script, completionHandler: nil)
         }
 
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            guard !controller.state.isReady else { return }
+        }
+
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            Task { @MainActor [controller] in
-                controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if !usingProxyFallback {
+                    loadProxyFallback(in: webView)
+                } else {
+                    controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
+                }
             }
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-            Task { @MainActor [controller] in
-                controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if !usingProxyFallback {
+                    loadProxyFallback(in: webView)
+                } else {
+                    controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
+                }
             }
         }
 
@@ -115,6 +154,17 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             Task { @MainActor [controller] in
                 controller.handleBridgeMessage(bridgeMessage)
             }
+        }
+    }
+}
+
+private extension YouTubePlayerState {
+    var isReady: Bool {
+        switch self {
+        case .ready, .playing, .paused, .buffering, .ended:
+            return true
+        case .idle, .loading, .error:
+            return false
         }
     }
 }
@@ -173,16 +223,11 @@ struct YouTubePlayerWebView: NSViewRepresentable {
 
         func loadPlayer(configuration: YouTubePlayerConfiguration, in webView: WKWebView) {
             self.configuration = configuration
+            controller.markLoadingStarted()
+            controller.scheduleLoadTimeout()
 
-            guard let request = YouTubePlayerWebLoader.proxyRequest(
-                for: configuration,
-                captionLanguage: configuration.captionLanguage
-            ) else {
-                controller.handleBridgeMessage(.error("Failed to build YouTube proxy request"))
-                return
-            }
-
-            webView.load(request)
+            let html = YouTubePlayerWebLoader.inlineHTML(for: configuration)
+            webView.loadHTMLString(html, baseURL: URL(string: YouTubePlayerWebLoader.referer)!)
         }
 
         func execute(_ command: YouTubePlayerCommand) {

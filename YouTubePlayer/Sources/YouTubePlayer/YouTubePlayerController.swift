@@ -10,8 +10,29 @@ public final class YouTubePlayerController: ObservableObject {
 
     fileprivate var pendingCommand: YouTubePlayerCommand?
     fileprivate var isWebViewReady = false
+    private var loadTimeoutTask: Task<Void, Never>?
 
     public init() {}
+
+    func markLoadingStarted() {
+        isWebViewReady = false
+        updateState(.loading)
+    }
+
+    func scheduleLoadTimeout(seconds: TimeInterval = 20) {
+        loadTimeoutTask?.cancel()
+        loadTimeoutTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard !Task.isCancelled, !isWebViewReady else { return }
+            updateState(.error("Player load timeout. Check internet connection and try again."))
+            onEvent?(.error("Player load timeout. Check internet connection and try again."))
+        }
+    }
+
+    func cancelLoadTimeout() {
+        loadTimeoutTask?.cancel()
+        loadTimeoutTask = nil
+    }
 
     public func play() {
         send(.play)
@@ -30,6 +51,7 @@ public final class YouTubePlayerController: ObservableObject {
         state = .loading
         currentTime = 0
         duration = 0
+        scheduleLoadTimeout()
         send(.load(videoID: videoID, startTime: startTime))
     }
 
@@ -46,6 +68,7 @@ public final class YouTubePlayerController: ObservableObject {
         switch message {
         case .ready:
             isWebViewReady = true
+            cancelLoadTimeout()
             updateState(.ready)
             onEvent?(.ready)
 
@@ -69,6 +92,7 @@ public final class YouTubePlayerController: ObservableObject {
             onEvent?(.ended)
 
         case .error(let text):
+            cancelLoadTimeout()
             updateState(.error(text))
             onEvent?(.error(text))
         }
