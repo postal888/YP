@@ -36,7 +36,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
 
         context.coordinator.webView = webView
-        context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .hostedProxy)
+        context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .inlineHTML)
 
         return webView
     }
@@ -44,7 +44,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         if context.coordinator.configuration != configuration {
             context.coordinator.configuration = configuration
-            context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .hostedProxy)
+            context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .inlineHTML)
         }
 
         if let command = controller.consumePendingCommand() {
@@ -56,7 +56,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         var configuration: YouTubePlayerConfiguration
         weak var webView: WKWebView?
         private let controller: YouTubePlayerController
-        private var loadStrategy: YouTubePlayerLoadStrategy = .hostedProxy
+        private var loadStrategy: YouTubePlayerLoadStrategy = .inlineHTML
 
         init(controller: YouTubePlayerController, configuration: YouTubePlayerConfiguration? = nil) {
             self.controller = controller
@@ -73,16 +73,19 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             controller.markLoadingStarted()
             controller.scheduleLoadTimeout()
 
-            guard let request = YouTubePlayerWebLoader.request(
-                for: configuration,
-                strategy: strategy,
-                captionLanguage: configuration.captionLanguage
+            guard YouTubePlayerWebLoader.load(
+                configuration: configuration,
+                in: webView,
+                strategy: strategy
             ) else {
                 controller.handleBridgeMessage(.error("Failed to build YouTube player request"))
                 return
             }
+        }
 
-            webView.load(request)
+        private func retryWithNextStrategy(in webView: WKWebView) {
+            guard let next = YouTubePlayerWebLoader.nextFallback(after: loadStrategy) else { return }
+            loadPlayer(configuration: configuration, in: webView, strategy: next)
         }
 
         func execute(_ command: YouTubePlayerCommand) {
@@ -102,7 +105,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
                 updated.startTime = startTime
                 configuration = updated
                 if let webView {
-                    loadPlayer(configuration: updated, in: webView, strategy: .hostedProxy)
+                    loadPlayer(configuration: updated, in: webView, strategy: .inlineHTML)
                 }
             }
         }
@@ -120,8 +123,8 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                if loadStrategy == .hostedProxy {
-                    loadPlayer(configuration: configuration, in: webView, strategy: .directEmbed)
+                if YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    retryWithNextStrategy(in: webView)
                 } else {
                     controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
                 }
@@ -131,8 +134,8 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                if loadStrategy == .hostedProxy {
-                    loadPlayer(configuration: configuration, in: webView, strategy: .directEmbed)
+                if YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    retryWithNextStrategy(in: webView)
                 } else {
                     controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
                 }
@@ -149,9 +152,9 @@ struct YouTubePlayerWebView: UIViewRepresentable {
                 guard let self, let webView else { return }
 
                 if case .error(let text) = bridgeMessage,
-                   loadStrategy == .hostedProxy,
-                   YouTubePlayerErrorMessages.isRefererError(text) {
-                    loadPlayer(configuration: configuration, in: webView, strategy: .directEmbed)
+                   YouTubePlayerErrorMessages.isRefererError(text),
+                   YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    retryWithNextStrategy(in: webView)
                     return
                 }
 
@@ -192,9 +195,10 @@ struct YouTubePlayerWebView: NSViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: webConfiguration)
         webView.setValue(false, forKey: "drawsBackground")
+        webView.navigationDelegate = context.coordinator
 
         context.coordinator.webView = webView
-        context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .hostedProxy)
+        context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .inlineHTML)
 
         return webView
     }
@@ -202,7 +206,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         if context.coordinator.configuration != configuration {
             context.coordinator.configuration = configuration
-            context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .hostedProxy)
+            context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .inlineHTML)
         }
 
         if let command = controller.consumePendingCommand() {
@@ -214,7 +218,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
         var configuration: YouTubePlayerConfiguration
         weak var webView: WKWebView?
         private let controller: YouTubePlayerController
-        private var loadStrategy: YouTubePlayerLoadStrategy = .hostedProxy
+        private var loadStrategy: YouTubePlayerLoadStrategy = .inlineHTML
 
         init(controller: YouTubePlayerController, configuration: YouTubePlayerConfiguration? = nil) {
             self.controller = controller
@@ -231,16 +235,19 @@ struct YouTubePlayerWebView: NSViewRepresentable {
             controller.markLoadingStarted()
             controller.scheduleLoadTimeout()
 
-            guard let request = YouTubePlayerWebLoader.request(
-                for: configuration,
-                strategy: strategy,
-                captionLanguage: configuration.captionLanguage
+            guard YouTubePlayerWebLoader.load(
+                configuration: configuration,
+                in: webView,
+                strategy: strategy
             ) else {
                 controller.handleBridgeMessage(.error("Failed to build YouTube player request"))
                 return
             }
+        }
 
-            webView.load(request)
+        private func retryWithNextStrategy(in webView: WKWebView) {
+            guard let next = YouTubePlayerWebLoader.nextFallback(after: loadStrategy) else { return }
+            loadPlayer(configuration: configuration, in: webView, strategy: next)
         }
 
         func execute(_ command: YouTubePlayerCommand) {
@@ -260,7 +267,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
                 updated.startTime = startTime
                 configuration = updated
                 if let webView {
-                    loadPlayer(configuration: updated, in: webView, strategy: .hostedProxy)
+                    loadPlayer(configuration: updated, in: webView, strategy: .inlineHTML)
                 }
             }
         }
@@ -269,13 +276,50 @@ struct YouTubePlayerWebView: NSViewRepresentable {
             webView?.evaluateJavaScript(script, completionHandler: nil)
         }
 
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            if loadStrategy == .directEmbed {
+                evaluate(YouTubePlayerWebLoader.directEmbedBootstrapScript)
+            }
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    retryWithNextStrategy(in: webView)
+                } else {
+                    controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
+                }
+            }
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    retryWithNextStrategy(in: webView)
+                } else {
+                    controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
+                }
+            }
+        }
+
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard message.name == "youtube",
                   let bridgeMessage = BridgeMessage(body: message.body) else {
                 return
             }
 
-            Task { @MainActor [controller] in
+            Task { @MainActor [weak self] in
+                guard let self, let webView else { return }
+
+                if case .error(let text) = bridgeMessage,
+                   YouTubePlayerErrorMessages.isRefererError(text),
+                   YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    retryWithNextStrategy(in: webView)
+                    return
+                }
+
                 controller.handleBridgeMessage(bridgeMessage)
             }
         }

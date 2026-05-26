@@ -31,7 +31,7 @@
         var start = params.get("start");
         var ccLang = params.get("cc_lang_pref") || params.get("ccLang") || "pt";
         var pageOrigin = window.location.origin;
-        var embedOrigin = pageOrigin.indexOf("localhost") >= 0 ? "https://www.youtube.com" : pageOrigin;
+        var embedOrigin = "https://www.youtube.com";
         var player = null;
         var pollId = null;
 

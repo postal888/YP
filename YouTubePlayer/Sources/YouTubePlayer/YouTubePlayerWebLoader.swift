@@ -1,14 +1,26 @@
 import Foundation
+#if canImport(WebKit)
+import WebKit
+#endif
 
 enum YouTubePlayerLoadStrategy: Equatable {
+    case inlineHTML
     case hostedProxy
     case directEmbed
 }
 
 enum YouTubePlayerWebLoader {
-    static let hostedProxyBaseURL = "https://cdn.jsdelivr.net/gh/postal888/portmob_ios@main/youtube-embed.html"
+    static let hostedProxyBaseURL = "https://cdn.jsdelivr.net/gh/postal888/YP@main/YouTubePlayer/Sources/YouTubePlayer/Resources/youtube-embed.html"
     static let referer = "https://www.youtube.com/"
     static let embedOrigin = "https://www.youtube.com"
+
+    static func nextFallback(after strategy: YouTubePlayerLoadStrategy) -> YouTubePlayerLoadStrategy? {
+        switch strategy {
+        case .inlineHTML: return .hostedProxy
+        case .hostedProxy: return .directEmbed
+        case .directEmbed: return nil
+        }
+    }
 
     static func request(
         for configuration: YouTubePlayerConfiguration,
@@ -16,6 +28,8 @@ enum YouTubePlayerWebLoader {
         captionLanguage: String = "pt"
     ) -> URLRequest? {
         switch strategy {
+        case .inlineHTML:
+            return nil
         case .hostedProxy:
             return hostedProxyRequest(for: configuration, captionLanguage: captionLanguage)
         case .directEmbed:
@@ -71,6 +85,69 @@ enum YouTubePlayerWebLoader {
         return configuredRequest(url: url)
     }
 
+    static func inlineHTML(for configuration: YouTubePlayerConfiguration) -> String {
+        let safeId = configuration.videoID.replacingOccurrences(of: "'", with: "")
+        let safeLang = configuration.captionLanguage.replacingOccurrences(of: "'", with: "")
+        let startJs = configuration.startTime > 1 ? "start: \(Int(configuration.startTime))," : ""
+        let controls = configuration.showControls ? 1 : 0
+        let autoplay = configuration.autoplay ? 1 : 0
+
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="referrer" content="strict-origin-when-cross-origin">
+          <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+          <style>html,body{margin:0;height:100%;background:#000}#p{width:100%;height:100%}</style>
+          <script src="https://www.youtube.com/iframe_api"></script>
+        </head>
+        <body>
+          <div id="p"></div>
+          <script>
+            function post(msg) {
+              try { window.webkit.messageHandlers.youtube.postMessage(msg); } catch (e) {}
+            }
+            function onYouTubeIframeAPIReady() {
+              window.ytPlayer = new YT.Player('p', {
+                host: 'https://www.youtube-nocookie.com',
+                videoId: '\(safeId)',
+                playerVars: {
+                  playsinline: \(configuration.playsInline ? 1 : 0),
+                  rel: 0,
+                  enablejsapi: 1,
+                  origin: '\(embedOrigin)',
+                  widget_referrer: '\(embedOrigin)',
+                  cc_load_policy: 1,
+                  cc_lang_pref: '\(safeLang)',
+                  modestbranding: 1,
+                  controls: \(controls),
+                  autoplay: \(autoplay),
+                  \(startJs)
+                },
+                events: {
+                  onReady: function() {
+                    post({ event: 'ready' });
+                    setInterval(function() {
+                      if (!window.ytPlayer || !window.ytPlayer.getCurrentTime) return;
+                      post({
+                        event: 'time',
+                        currentTime: window.ytPlayer.getCurrentTime(),
+                        playerState: window.ytPlayer.getPlayerState()
+                      });
+                    }, 250);
+                  },
+                  onStateChange: function(e) { post({ event: 'state', playerState: e.data }); },
+                  onError: function(e) { post({ event: 'error', code: e.data }); }
+                }
+              });
+            }
+          </script>
+        </body>
+        </html>
+        """
+    }
+
     static let bridgeScriptSource = """
     (function () {
       function forward(data) {
@@ -106,6 +183,28 @@ enum YouTubePlayerWebLoader {
       }
     })();
     """
+
+    #if canImport(WebKit)
+    static func load(
+        configuration: YouTubePlayerConfiguration,
+        in webView: WKWebView,
+        strategy: YouTubePlayerLoadStrategy
+    ) -> Bool {
+        switch strategy {
+        case .inlineHTML:
+            let html = inlineHTML(for: configuration)
+            webView.loadHTMLString(html, baseURL: URL(string: referer))
+            return true
+
+        case .hostedProxy, .directEmbed:
+            guard let request = request(for: configuration, strategy: strategy, captionLanguage: configuration.captionLanguage) else {
+                return false
+            }
+            webView.load(request)
+            return true
+        }
+    }
+    #endif
 
     private static func configuredRequest(url: URL) -> URLRequest {
         var request = URLRequest(url: url, timeoutInterval: 30)
