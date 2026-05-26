@@ -37,12 +37,12 @@ public final class YouTubePlayerController: ObservableObject {
         pendingCommand = command
     }
 
-    fileprivate func consumePendingCommand() -> YouTubePlayerCommand? {
+    func consumePendingCommand() -> YouTubePlayerCommand? {
         defer { pendingCommand = nil }
         return pendingCommand
     }
 
-    fileprivate func handleBridgeMessage(_ message: BridgeMessage) {
+    func handleBridgeMessage(_ message: BridgeMessage) {
         switch message {
         case .ready:
             isWebViewReady = true
