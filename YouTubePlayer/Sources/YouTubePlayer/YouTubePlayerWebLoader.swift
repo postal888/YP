@@ -28,20 +28,6 @@ enum YouTubePlayerWebLoader {
         request.setValue(referer, forHTTPHeaderField: "Origin")
         return request
     }
-
-    static let bridgeScriptSource = """
-    (function () {
-      window.addEventListener('message', function (event) {
-        var data = event.data;
-        if (!data || typeof data !== 'object' || data.source !== 'portuprep-yt') {
-          return;
-        }
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.youtube) {
-          window.webkit.messageHandlers.youtube.postMessage(data);
-        }
-      });
-    })();
-    """
 }
 
 enum YouTubePlayerErrorMessages {

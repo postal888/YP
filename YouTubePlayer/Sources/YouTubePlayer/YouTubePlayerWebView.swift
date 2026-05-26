@@ -18,13 +18,6 @@ struct YouTubePlayerWebView: UIViewRepresentable {
 
         let userContentController = WKUserContentController()
         userContentController.add(context.coordinator, name: "youtube")
-        userContentController.addUserScript(
-            WKUserScript(
-                source: YouTubePlayerWebLoader.bridgeScriptSource,
-                injectionTime: .atDocumentStart,
-                forMainFrameOnly: true
-            )
-        )
         webConfiguration.userContentController = userContentController
 
         let webView = WKWebView(frame: .zero, configuration: webConfiguration)
@@ -146,13 +139,6 @@ struct YouTubePlayerWebView: NSViewRepresentable {
 
         let userContentController = WKUserContentController()
         userContentController.add(context.coordinator, name: "youtube")
-        userContentController.addUserScript(
-            WKUserScript(
-                source: YouTubePlayerWebLoader.bridgeScriptSource,
-                injectionTime: .atDocumentStart,
-                forMainFrameOnly: true
-            )
-        )
         webConfiguration.userContentController = userContentController
 
         let webView = WKWebView(frame: .zero, configuration: webConfiguration)
