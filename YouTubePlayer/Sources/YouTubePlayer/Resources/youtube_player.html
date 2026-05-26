@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+    #player {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="player"></div>
+  <script>
+    var player = null;
+    var progressTimer = null;
+    var progressIntervalMs = {{PROGRESS_INTERVAL_MS}};
+    var apiReady = false;
+    var pendingConfig = null;
+
+    function post(event, payload) {
+      var message = Object.assign({ event: event }, payload || {});
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.youtube) {
+        window.webkit.messageHandlers.youtube.postMessage(message);
+      }
+    }
+
+    function clearProgressTimer() {
+      if (progressTimer) {
+        clearInterval(progressTimer);
+        progressTimer = null;
+      }
+    }
+
+    function startProgressTimer() {
+      clearProgressTimer();
+      progressTimer = setInterval(function () {
+        if (!player || typeof player.getCurrentTime !== 'function') {
+          return;
+        }
+        post('progress', {
+          currentTime: player.getCurrentTime() || 0,
+          duration: player.getDuration() || 0
+        });
+      }, progressIntervalMs);
+    }
+
+    function onYouTubeIframeAPIReady() {
+      apiReady = true;
+      if (pendingConfig) {
+        createPlayer(pendingConfig);
+        pendingConfig = null;
+      }
+    }
+
+    function createPlayer(config) {
+      if (player && typeof player.destroy === 'function') {
+        player.destroy();
+      }
+
+      clearProgressTimer();
+
+      player = new YT.Player('player', {
+        height: '100%',
+        width: '100%',
+        videoId: config.videoId,
+        playerVars: {
+          autoplay: config.autoplay ? 1 : 0,
+          controls: config.showControls ? 1 : 0,
+          fs: config.allowFullscreen ? 1 : 0,
+          playsinline: config.playsInline ? 1 : 0,
+          rel: 0,
+          modestbranding: 1,
+          start: Math.floor(config.startTime || 0),
+          origin: window.location.origin
+        },
+        events: {
+          onReady: function () {
+            post('ready');
+            startProgressTimer();
+            if (config.autoplay) {
+              player.playVideo();
+            }
+          },
+          onStateChange: function (event) {
+            post('state', { data: event.data });
+            if (event.data === YT.PlayerState.ENDED) {
+              post('ended');
+            }
+          },
+          onError: function (event) {
+            post('error', { message: 'YouTube error code ' + event.data });
+          }
+        }
+      });
+    }
+
+    window.youtubeBridge = {
+      createPlayer: function (config) {
+        if (apiReady) {
+          createPlayer(config);
+        } else {
+          pendingConfig = config;
+        }
+      },
+      play: function () {
+        if (player) player.playVideo();
+      },
+      pause: function () {
+        if (player) player.pauseVideo();
+      },
+      seekTo: function (seconds) {
+        if (player) player.seekTo(seconds, true);
+      },
+      loadVideo: function (videoId, startTime) {
+        if (player) {
+          player.loadVideoById({
+            videoId: videoId,
+            startSeconds: startTime || 0
+          });
+        } else {
+          createPlayer({
+            videoId: videoId,
+            autoplay: false,
+            startTime: startTime || 0,
+            showControls: true,
+            allowFullscreen: true,
+            playsInline: true
+          });
+        }
+      }
+    };
+  </script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>

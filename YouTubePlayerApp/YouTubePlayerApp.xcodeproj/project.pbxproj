@@ -1,0 +1,309 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2A0000010000000000000015 /* YouTubePlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000004 /* YouTubePlayerApp.swift */; };
+		2A0000010000000000000016 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000005 /* ContentView.swift */; };
+		2A0000010000000000000017 /* LessonPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000006 /* LessonPlayerView.swift */; };
+		2A000001000000000000001C /* AppErrorLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000001B /* AppErrorLog.swift */; };
+		2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000001D /* ErrorLogPanelView.swift */; };
+		2A0000010000000000000018 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000007 /* Assets.xcassets */; };
+		2A0000010000000000000014 /* YouTubePlayer in Frameworks */ = {isa = PBXBuildFile; productRef = 2A0000010000000000000013 /* YouTubePlayer */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		2A0000010000000000000003 /* YouTubePlayerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YouTubePlayerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2A0000010000000000000004 /* YouTubePlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerApp.swift; sourceTree = "<group>"; };
+		2A0000010000000000000005 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		2A0000010000000000000006 /* LessonPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonPlayerView.swift; sourceTree = "<group>"; };
+		2A000001000000000000001B /* AppErrorLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppErrorLog.swift; sourceTree = "<group>"; };
+		2A000001000000000000001D /* ErrorLogPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorLogPanelView.swift; sourceTree = "<group>"; };
+		2A0000010000000000000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2A000001000000000000000C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2A0000010000000000000014 /* YouTubePlayer in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2A0000010000000000000008 /* Root */ = {
+			isa = PBXGroup;
+			children = (
+				2A000001000000000000000A /* YouTubePlayerApp */,
+				2A0000010000000000000009 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000009 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2A0000010000000000000003 /* YouTubePlayerApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2A000001000000000000000A /* YouTubePlayerApp */ = {
+			isa = PBXGroup;
+			children = (
+				2A0000010000000000000004 /* YouTubePlayerApp.swift */,
+				2A0000010000000000000005 /* ContentView.swift */,
+				2A0000010000000000000006 /* LessonPlayerView.swift */,
+				2A000001000000000000001B /* AppErrorLog.swift */,
+				2A000001000000000000001D /* ErrorLogPanelView.swift */,
+				2A0000010000000000000007 /* Assets.xcassets */,
+			);
+			path = YouTubePlayerApp;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2A0000010000000000000002 /* YouTubePlayerApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2A0000010000000000000019 /* Build configuration list for PBXNativeTarget "YouTubePlayerApp" */;
+			buildPhases = (
+				2A000001000000000000000B /* Sources */,
+				2A000001000000000000000C /* Frameworks */,
+				2A000001000000000000000D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = YouTubePlayerApp;
+			packageProductDependencies = (
+				2A0000010000000000000013 /* YouTubePlayer */,
+			);
+			productName = YouTubePlayerApp;
+			productReference = 2A0000010000000000000003 /* YouTubePlayerApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		2A0000010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					2A0000010000000000000002 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 2A000001000000000000001A /* Build configuration list for PBXProject "YouTubePlayerApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = ru;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				ru,
+			);
+			mainGroup = 2A0000010000000000000008 /* Root */;
+			packageReferences = (
+				2A0000010000000000000012 /* XCLocalSwiftPackageReference "../YouTubePlayer" */,
+			);
+			productRefGroup = 2A0000010000000000000009 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2A0000010000000000000002 /* YouTubePlayerApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2A000001000000000000000D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2A0000010000000000000018 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2A000001000000000000000B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2A0000010000000000000015 /* YouTubePlayerApp.swift in Sources */,
+				2A0000010000000000000016 /* ContentView.swift in Sources */,
+				2A0000010000000000000017 /* LessonPlayerView.swift in Sources */,
+				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
+				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		2A000001000000000000000E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		2A000001000000000000000F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		2A0000010000000000000010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "YouTube Player";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yp.youtubeplayer.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		2A0000010000000000000011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "YouTube Player";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yp.youtubeplayer.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2A0000010000000000000019 /* Build configuration list for PBXNativeTarget "YouTubePlayerApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2A0000010000000000000010 /* Debug */,
+				2A0000010000000000000011 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2A000001000000000000001A /* Build configuration list for PBXProject "YouTubePlayerApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2A000001000000000000000E /* Debug */,
+				2A000001000000000000000F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		2A0000010000000000000012 /* XCLocalSwiftPackageReference "../YouTubePlayer" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../YouTubePlayer;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2A0000010000000000000013 /* YouTubePlayer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2A0000010000000000000012 /* XCLocalSwiftPackageReference "../YouTubePlayer" */;
+			productName = YouTubePlayer;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+	};
+	rootObject = 2A0000010000000000000001 /* Project object */;
+}
