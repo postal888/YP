@@ -32,6 +32,8 @@ final class YouTubePlayerHolder: ObservableObject {
     private var onError: ((String) -> Void)?
     private var onDebug: ((String) -> Void)?
 
+    @Published private(set) var isPlaying = false
+
     init() {}
 
     func configure(
@@ -119,6 +121,7 @@ final class YouTubePlayerHolder: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] playbackState in
                 guard let self else { return }
+                self.isPlaying = playbackState.value == YouTubePlayer.PlaybackState.playing.value
                 self.onState?(Self.playbackStatusText(for: playbackState))
                 if playbackState == .ended {
                     self.onEnded?()

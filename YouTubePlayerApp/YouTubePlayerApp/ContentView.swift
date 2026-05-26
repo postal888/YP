@@ -2,69 +2,52 @@ import SwiftUI
 
 @MainActor
 struct ContentView: View {
-    @State private var inputURL = "https://www.youtube.com/watch?v=ysz5S6PUM-U"
-    @State private var resolvedVideoID: String?
     @StateObject private var errorLog = AppErrorLog()
+    @State private var selectedVideoID: String?
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        Text("YouTube Player")
-                            .font(.title2.bold())
-
-                        Text("Вставьте ссылку на YouTube или video ID. Плеер покажет видео и субтитры с синхронизацией.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        TextField("YouTube URL или video ID", text: $inputURL)
-                            .textFieldStyle(.roundedBorder)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-
-                        Button("Загрузить видео") {
-                            loadVideo()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .frame(maxWidth: .infinity)
-
-                        if let videoID = resolvedVideoID {
-                            LessonPlayerView(
-                                videoID: videoID,
-                                errorLog: errorLog
-                            )
-                        } else if !inputURL.isEmpty {
-                            Text("Не удалось распознать video ID")
-                                .foregroundStyle(.red)
-                        }
+                ZStack {
+                    HomeView(errorLog: errorLog) { videoID in
+                        selectedVideoID = videoID
                     }
-                    .padding()
+
+                    NavigationLink(
+                        destination: playerDestination,
+                        tag: "player",
+                        selection: Binding(
+                            get: { selectedVideoID == nil ? nil : "player" },
+                            set: { if $0 == nil { selectedVideoID = nil } }
+                        )
+                    ) {
+                        EmptyView()
+                    }
+                    .hidden()
                 }
 
-                ErrorLogPanelView(log: errorLog)
+                if selectedVideoID == nil {
+                    ErrorLogPanelView(log: errorLog)
+                }
             }
-            .navigationTitle("YouTube Player")
-            .navigationViewStyle(.stack)
+            .navigationBarHidden(true)
+            .background(PortTheme.background.ignoresSafeArea())
         }
+        .navigationViewStyle(.stack)
+        .preferredColorScheme(.dark)
+        .accentColor(PortTheme.accent)
     }
 
-    private func loadVideo() {
-        let trimmed = inputURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            errorLog.add(source: "Video", message: "Пустой ввод URL или video ID.")
-            resolvedVideoID = nil
-            return
-        }
-
-        if let videoID = YouTubeVideoIDExtractor.extract(from: trimmed) {
-            resolvedVideoID = videoID
-        } else {
-            resolvedVideoID = nil
-            errorLog.add(
-                source: "Video",
-                message: "Не удалось распознать video ID из: \(trimmed)"
+    @ViewBuilder
+    private var playerDestination: some View {
+        if let videoID = selectedVideoID {
+            LessonPlayerView(
+                videoID: videoID,
+                errorLog: errorLog,
+                onClose: { selectedVideoID = nil }
             )
+        } else {
+            EmptyView()
         }
     }
 }

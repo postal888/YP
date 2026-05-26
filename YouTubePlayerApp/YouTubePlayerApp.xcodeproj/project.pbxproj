@@ -20,6 +20,15 @@
 		2A0000010000000000000028 /* YouTubeSubtitlesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000027 /* YouTubeSubtitlesView.swift */; };
 		2A000001000000000000002A /* YouTubeSubtitleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000029 /* YouTubeSubtitleModels.swift */; };
 		2A000001000000000000002C /* YouTubePlayerHolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000002B /* YouTubePlayerHolder.swift */; };
+		2A0000010000000000000030 /* SubtitleWordTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000002F /* SubtitleWordTokenizer.swift */; };
+		2A0000010000000000000032 /* WordTranslationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000031 /* WordTranslationService.swift */; };
+		2A0000010000000000000034 /* InteractiveSubtitleText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000033 /* InteractiveSubtitleText.swift */; };
+		2A0000010000000000000036 /* RecentTranslationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000035 /* RecentTranslationsView.swift */; };
+		2A0000010000000000000038 /* PortTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000037 /* PortTheme.swift */; };
+		2A000001000000000000003A /* YouTubeSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000039 /* YouTubeSearchService.swift */; };
+		2A000001000000000000003C /* PortSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000003B /* PortSearchBar.swift */; };
+		2A000001000000000000003E /* YouTubeVideoCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000003D /* YouTubeVideoCard.swift */; };
+		2A0000010000000000000040 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000003F /* HomeView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +45,15 @@
 		2A0000010000000000000027 /* YouTubeSubtitlesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSubtitlesView.swift; sourceTree = "<group>"; };
 		2A0000010000000000000029 /* YouTubeSubtitleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSubtitleModels.swift; sourceTree = "<group>"; };
 		2A000001000000000000002B /* YouTubePlayerHolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayerHolder.swift; sourceTree = "<group>"; };
+		2A000001000000000000002F /* SubtitleWordTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleWordTokenizer.swift; sourceTree = "<group>"; };
+		2A0000010000000000000031 /* WordTranslationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordTranslationService.swift; sourceTree = "<group>"; };
+		2A0000010000000000000033 /* InteractiveSubtitleText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveSubtitleText.swift; sourceTree = "<group>"; };
+		2A0000010000000000000035 /* RecentTranslationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTranslationsView.swift; sourceTree = "<group>"; };
+		2A0000010000000000000037 /* PortTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortTheme.swift; sourceTree = "<group>"; };
+		2A0000010000000000000039 /* YouTubeSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSearchService.swift; sourceTree = "<group>"; };
+		2A000001000000000000003B /* PortSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortSearchBar.swift; sourceTree = "<group>"; };
+		2A000001000000000000003D /* YouTubeVideoCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeVideoCard.swift; sourceTree = "<group>"; };
+		2A000001000000000000003F /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,14 +89,43 @@
 			children = (
 				2A0000010000000000000004 /* YouTubePlayerApp.swift */,
 				2A0000010000000000000005 /* ContentView.swift */,
+				2A0000010000000000000041 /* Home */,
 				2A0000010000000000000006 /* LessonPlayerView.swift */,
 				2A000001000000000000002B /* YouTubePlayerHolder.swift */,
+				2A0000010000000000000042 /* Search */,
 				2A0000010000000000000020 /* Subtitles */,
+				2A0000010000000000000043 /* Theme */,
 				2A000001000000000000001B /* AppErrorLog.swift */,
 				2A000001000000000000001D /* ErrorLogPanelView.swift */,
 				2A0000010000000000000007 /* Assets.xcassets */,
 			);
 			path = YouTubePlayerApp;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000041 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				2A000001000000000000003F /* HomeView.swift */,
+				2A000001000000000000003B /* PortSearchBar.swift */,
+				2A000001000000000000003D /* YouTubeVideoCard.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000042 /* Search */ = {
+			isa = PBXGroup;
+			children = (
+				2A0000010000000000000039 /* YouTubeSearchService.swift */,
+			);
+			path = Search;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000043 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				2A0000010000000000000037 /* PortTheme.swift */,
+			);
+			path = Theme;
 			sourceTree = "<group>";
 		};
 		2A0000010000000000000020 /* Subtitles */ = {
@@ -89,6 +136,10 @@
 				2A0000010000000000000025 /* YouTubeTranscriptFetcher.swift */,
 				2A0000010000000000000027 /* YouTubeSubtitlesView.swift */,
 				2A0000010000000000000029 /* YouTubeSubtitleModels.swift */,
+				2A000001000000000000002F /* SubtitleWordTokenizer.swift */,
+				2A0000010000000000000031 /* WordTranslationService.swift */,
+				2A0000010000000000000033 /* InteractiveSubtitleText.swift */,
+				2A0000010000000000000035 /* RecentTranslationsView.swift */,
 			);
 			path = Subtitles;
 			sourceTree = "<group>";
@@ -178,6 +229,15 @@
 				2A0000010000000000000026 /* YouTubeTranscriptFetcher.swift in Sources */,
 				2A0000010000000000000028 /* YouTubeSubtitlesView.swift in Sources */,
 				2A000001000000000000002A /* YouTubeSubtitleModels.swift in Sources */,
+				2A0000010000000000000030 /* SubtitleWordTokenizer.swift in Sources */,
+				2A0000010000000000000032 /* WordTranslationService.swift in Sources */,
+				2A0000010000000000000034 /* InteractiveSubtitleText.swift in Sources */,
+				2A0000010000000000000036 /* RecentTranslationsView.swift in Sources */,
+				2A0000010000000000000038 /* PortTheme.swift in Sources */,
+				2A000001000000000000003A /* YouTubeSearchService.swift in Sources */,
+				2A000001000000000000003C /* PortSearchBar.swift in Sources */,
+				2A000001000000000000003E /* YouTubeVideoCard.swift in Sources */,
+				2A0000010000000000000040 /* HomeView.swift in Sources */,
 				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
 				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
 			);

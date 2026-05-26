@@ -1,195 +1,355 @@
-import SwiftUI
-import Combine
-import YouTubePlayerKit
-
-@MainActor
-struct LessonPlayerView: View {
-    let videoID: String
-    @ObservedObject var errorLog: AppErrorLog
-
-    @StateObject private var playerHolder = YouTubePlayerHolder()
-    @State private var watchedSeconds: Double = 0
-    @State private var lessonCompleted = false
-    @State private var subtitleLines: [YouTubeSubtitleLine] = []
-    @State private var selectedLanguage: YouTubeSubtitleLanguage = .portuguese
-    @State private var isLoadingSubtitles = false
-    @State private var subtitleError: String?
-    @State private var loadedTranscriptKey: String?
-    @State private var lastLoggedPlayerError: String?
-    @State private var currentTime: Double = 0
-    @State private var duration: Double = 0
-    @State private var statusText: String = "Ожидание"
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Тестовый урок")
-                .font(.headline)
-
-            YouTubePlayerView(playerHolder.player) { state in
-                switch state {
-                case .idle:
-                    ProgressView()
-                case .ready:
-                    EmptyView()
-                case .error(let error):
-                    Text("Ошибка плеера: \(String(describing: error))")
-                        .foregroundColor(.red)
-                        .padding()
-                }
-            }
-            .id("\(videoID)-\(selectedLanguage.rawValue)")
-            .frame(height: 220)
-            .onAppear {
-                playerHolder.configure(
-                    videoID: videoID,
-                    captionLanguage: selectedLanguage.rawValue,
-                    onProgress: { time, dur in
-                        currentTime = time
-                        duration = dur
-                        watchedSeconds = max(watchedSeconds, time)
-                    },
-                    onState: { text in statusText = text },
-                    onEnded: { lessonCompleted = true },
-                    onError: { msg in logPlayerError(msg) },
-                    onDebug: { msg in errorLog.add(source: "Player", message: msg) }
-                )
-            }
-            .onChange(of: videoID) { newID in
-                playerHolder.load(videoID: newID, captionLanguage: selectedLanguage.rawValue)
-                resetWatchState()
-            }
-            .onChange(of: selectedLanguage) { newLang in
-                playerHolder.load(videoID: videoID, captionLanguage: newLang.rawValue)
-            }
-
-            HStack {
-                Button("Play") { playerHolder.play() }
-                Button("Pause") { playerHolder.pause() }
-                Button("−10s") { playerHolder.seek(to: max(0, currentTime - 10)) }
-                Button("+10s") { playerHolder.seek(to: currentTime + 10) }
-            }
-            .buttonStyle(.bordered)
-
-            languagePicker
-            subtitlesSection
-            progressSection
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .task(id: transcriptKey) {
-            await loadSubtitlesIfNeeded()
-        }
-    }
-
-    private var transcriptKey: String { "\(videoID):\(selectedLanguage.rawValue)" }
-
-    private var languagePicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Субтитры").font(.subheadline.weight(.semibold))
-            Picker("Язык субтитров", selection: $selectedLanguage) {
-                ForEach(YouTubeSubtitleLanguage.allCases) { language in
-                    Text(language.label).tag(language)
-                }
-            }
-            .pickerStyle(.segmented)
-        }
-    }
-
-    @ViewBuilder
-    private var subtitlesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if isLoadingSubtitles {
-                HStack(spacing: 10) {
-                    ProgressView()
-                    Text("Загрузка субтитров...").font(.subheadline).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
-            } else if let subtitleError {
-                Text(subtitleError).font(.subheadline).foregroundStyle(.red)
-            } else if !subtitleLines.isEmpty {
-                Text("\(subtitleLines.count) строк · с устройства")
-                    .font(.caption).foregroundStyle(.secondary)
-
-                YouTubeSubtitlesView(
-                    lines: subtitleLines,
-                    playbackSec: currentTime,
-                    onLineTap: { line in
-                        playerHolder.seek(to: line.startSec)
-                        playerHolder.play()
-                    }
-                )
-                .frame(minHeight: 220, maxHeight: 360)
-            } else {
-                Text("Субтитры не загружены.").font(.subheadline).foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var progressSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Статус: \(statusText)")
-            Text("Просмотрено: \(Int(watchedSeconds)) сек")
-
-            if duration > 0 {
-                ProgressView(value: min(watchedSeconds, duration), total: duration)
-            }
-
-            if lessonCompleted {
-                Label("Видео просмотрено до конца", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-            }
-        }
-        .font(.subheadline)
-    }
-
-    private func resetWatchState() {
-        watchedSeconds = 0
-        lessonCompleted = false
-        currentTime = 0
-        duration = 0
-    }
-
-    @MainActor
-    private func loadSubtitlesIfNeeded() async {
-        guard loadedTranscriptKey != transcriptKey else { return }
-
-        isLoadingSubtitles = true
-        subtitleError = nil
-        subtitleLines = []
-
-        do {
-            let lines = try await YouTubeTranscriptFetcher.shared.fetchSubtitleLines(
-                videoID: videoID,
-                preferredLanguage: selectedLanguage.rawValue
-            )
-            subtitleLines = lines
-            loadedTranscriptKey = transcriptKey
-        } catch {
-            let message = error.localizedDescription
-            subtitleError = message
-            loadedTranscriptKey = nil
-            errorLog.add(
-                source: "Subtitles",
-                message: "videoID=\(videoID), lang=\(selectedLanguage.rawValue): \(message)"
-            )
-        }
-
-        isLoadingSubtitles = false
-    }
-
-    private func logPlayerError(_ message: String) {
-        guard lastLoggedPlayerError != message else { return }
-        lastLoggedPlayerError = message
-        errorLog.add(source: "Player", message: "videoID=\(videoID): \(message)")
-    }
-}
-
-#Preview {
-    LessonPlayerView(
-        videoID: "ysz5S6PUM-U",
-        errorLog: AppErrorLog()
-    )
-    .padding()
-}
+import SwiftUI
+import Combine
+import YouTubePlayerKit
+
+@MainActor
+struct LessonPlayerView: View {
+    let videoID: String
+    @ObservedObject var errorLog: AppErrorLog
+    var onClose: (() -> Void)? = nil
+
+    @Environment(\.presentationMode) private var presentationMode
+
+    @StateObject private var playerHolder = YouTubePlayerHolder()
+    @State private var watchedSeconds: Double = 0
+    @State private var lessonCompleted = false
+    @State private var subtitleLines: [YouTubeSubtitleLine] = []
+    @State private var selectedLanguage: YouTubeSubtitleLanguage = .portuguese
+    @State private var isLoadingSubtitles = false
+    @State private var subtitleError: String?
+    @State private var loadedTranscriptKey: String?
+    @State private var lastLoggedPlayerError: String?
+    @State private var currentTime: Double = 0
+    @State private var duration: Double = 0
+    @State private var statusText: String = "Ожидание"
+    @State private var translationPreview: String?
+    @State private var isTranslatingWord = false
+    @State private var recentTranslations: [WordTranslationEntry] = []
+    @State private var translatedWordKeys: Set<String> = []
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                header
+                playerSection
+                transportControls
+                languagePicker
+                subtitlesSection
+                if lessonCompleted {
+                    completionBadge
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+        }
+        .background(PortTheme.background.ignoresSafeArea())
+        .navigationBarHidden(true)
+        .task(id: transcriptKey) {
+            await loadSubtitlesIfNeeded()
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            Button {
+                closePlayer()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(PortTheme.textSubtle)
+                    .frame(width: 36, height: 36)
+                    .background(PortTheme.surfaceInput)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Урок")
+                    .font(.headline)
+                    .foregroundStyle(PortTheme.heading)
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(PortTheme.textMuted)
+            }
+
+            Spacer()
+
+            if duration > 0 {
+                Text(progressLabel)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(PortTheme.textMuted)
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private var progressLabel: String {
+        "\(formatClock(currentTime)) / \(formatClock(duration))"
+    }
+
+    private func formatClock(_ seconds: Double) -> String {
+        let total = max(0, Int(seconds.rounded(.down)))
+        let minutes = total / 60
+        let remainder = total % 60
+        return String(format: "%d:%02d", minutes, remainder)
+    }
+
+    private var playerSection: some View {
+        YouTubePlayerView(playerHolder.player) { state in
+            switch state {
+            case .idle:
+                ZStack {
+                    PortTheme.surfaceMuted
+                    ProgressView()
+                        .tint(PortTheme.accent)
+                }
+            case .ready:
+                EmptyView()
+            case .error(let error):
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(PortTheme.danger)
+                    Text("Ошибка плеера")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PortTheme.heading)
+                    Text(String(describing: error))
+                        .font(.caption)
+                        .foregroundStyle(PortTheme.textMuted)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            }
+        }
+        .id("\(videoID)-\(selectedLanguage.rawValue)")
+        .frame(maxWidth: .infinity)
+        .aspectRatio(16 / 9, contentMode: .fit)
+        .background(PortTheme.surfaceMuted)
+        .clipShape(RoundedRectangle(cornerRadius: PortTheme.radiusLG, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: PortTheme.radiusLG, style: .continuous)
+                .stroke(PortTheme.cardBorder, lineWidth: 1)
+        )
+        .onAppear {
+            playerHolder.configure(
+                videoID: videoID,
+                captionLanguage: selectedLanguage.rawValue,
+                onProgress: { time, dur in
+                    currentTime = time
+                    duration = dur
+                    watchedSeconds = max(watchedSeconds, time)
+                },
+                onState: { text in statusText = text },
+                onEnded: { lessonCompleted = true },
+                onError: { msg in logPlayerError(msg) },
+                onDebug: { msg in errorLog.add(source: "Player", message: msg) }
+            )
+        }
+        .onChange(of: videoID) { newID in
+            playerHolder.load(videoID: newID, captionLanguage: selectedLanguage.rawValue)
+            resetWatchState()
+        }
+        .onChange(of: selectedLanguage) { newLang in
+            playerHolder.load(videoID: videoID, captionLanguage: newLang.rawValue)
+        }
+    }
+
+    private var transportControls: some View {
+        HStack(spacing: 10) {
+            controlButton(icon: "gobackward.10", label: "−10") {
+                playerHolder.seek(to: max(0, currentTime - 10))
+            }
+            controlButton(icon: playerHolder.isPlaying ? "pause.fill" : "play.fill", label: playerHolder.isPlaying ? "Пауза" : "Play") {
+                if playerHolder.isPlaying {
+                    playerHolder.pause()
+                } else {
+                    playerHolder.play()
+                }
+            }
+            controlButton(icon: "goforward.10", label: "+10") {
+                playerHolder.seek(to: currentTime + 10)
+            }
+        }
+    }
+
+    private func controlButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.body.weight(.semibold))
+                Text(label)
+                    .font(.caption2)
+            }
+            .foregroundStyle(PortTheme.textSubtle)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(PortTheme.surfaceInput)
+            .clipShape(RoundedRectangle(cornerRadius: PortTheme.radiusMD, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var transcriptKey: String { "\(videoID):\(selectedLanguage.rawValue)" }
+
+    private var languagePicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Язык субтитров")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(PortTheme.textSubtle)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(YouTubeSubtitleLanguage.allCases) { language in
+                        Button(language.label) {
+                            selectedLanguage = language
+                        }
+                        .buttonStyle(PortChipButtonStyle(isSelected: selectedLanguage == language))
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var subtitlesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Субтитры")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PortTheme.textSubtle)
+                Spacer()
+                if !subtitleLines.isEmpty {
+                    Text("\(subtitleLines.count) строк")
+                        .font(.caption)
+                        .foregroundStyle(PortTheme.textMuted)
+                }
+            }
+
+            if isLoadingSubtitles {
+                HStack(spacing: 10) {
+                    ProgressView().tint(PortTheme.accent)
+                    Text("Загрузка субтитров…")
+                        .font(.subheadline)
+                        .foregroundStyle(PortTheme.textMuted)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 12)
+                .padding(.horizontal, 14)
+                .portCard()
+            } else if let subtitleError {
+                Text(subtitleError)
+                    .font(.subheadline)
+                    .foregroundStyle(PortTheme.danger)
+                    .padding(14)
+                    .portCard()
+            } else if !subtitleLines.isEmpty {
+                YouTubeSubtitlesView(
+                    lines: subtitleLines,
+                    playbackSec: currentTime,
+                    sourceLanguage: selectedLanguage.rawValue,
+                    translatedKeys: translatedWordKeys,
+                    translationPreview: $translationPreview,
+                    isTranslating: $isTranslatingWord,
+                    onTimestampTap: { line in
+                        playerHolder.seek(to: line.startSec)
+                        playerHolder.play()
+                    },
+                    onWordTranslated: { entry in
+                        rememberTranslation(entry)
+                    },
+                    onTranslationError: { message in
+                        errorLog.add(source: "Translate", message: message)
+                    }
+                )
+                .frame(minHeight: 240, maxHeight: 380)
+
+                RecentTranslationsView(entries: recentTranslations) {
+                    recentTranslations = []
+                }
+            } else {
+                Text("Субтитры не загружены.")
+                    .font(.subheadline)
+                    .foregroundStyle(PortTheme.textMuted)
+                    .padding(14)
+                    .portCard()
+            }
+        }
+    }
+
+    private var completionBadge: some View {
+        Label("Видео просмотрено до конца", systemImage: "checkmark.circle.fill")
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(PortTheme.successText)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(PortTheme.accentSoft)
+            .clipShape(RoundedRectangle(cornerRadius: PortTheme.radiusMD, style: .continuous))
+    }
+
+    private func closePlayer() {
+        if let onClose {
+            onClose()
+        } else {
+            presentationMode.wrappedValue.dismiss()
+        }
+    }
+
+    private func resetWatchState() {
+        watchedSeconds = 0
+        lessonCompleted = false
+        currentTime = 0
+        duration = 0
+        translationPreview = nil
+        recentTranslations = []
+        translatedWordKeys = []
+    }
+
+    @MainActor
+    private func loadSubtitlesIfNeeded() async {
+        guard loadedTranscriptKey != transcriptKey else { return }
+
+        isLoadingSubtitles = true
+        subtitleError = nil
+        subtitleLines = []
+
+        do {
+            let lines = try await YouTubeTranscriptFetcher.shared.fetchSubtitleLines(
+                videoID: videoID,
+                preferredLanguage: selectedLanguage.rawValue
+            )
+            subtitleLines = lines
+            loadedTranscriptKey = transcriptKey
+        } catch {
+            let message = error.localizedDescription
+            subtitleError = message
+            loadedTranscriptKey = nil
+            errorLog.add(
+                source: "Subtitles",
+                message: "videoID=\(videoID), lang=\(selectedLanguage.rawValue): \(message)"
+            )
+        }
+
+        isLoadingSubtitles = false
+    }
+
+    private func logPlayerError(_ message: String) {
+        guard lastLoggedPlayerError != message else { return }
+        lastLoggedPlayerError = message
+        errorLog.add(source: "Player", message: "videoID=\(videoID): \(message)")
+    }
+
+    private func rememberTranslation(_ entry: WordTranslationEntry) {
+        translatedWordKeys.insert(entry.id)
+        recentTranslations.removeAll { $0.id == entry.id }
+        recentTranslations.insert(entry, at: 0)
+        if recentTranslations.count > 20 {
+            recentTranslations = Array(recentTranslations.prefix(20))
+        }
+    }
+}
+
+#Preview {
+    LessonPlayerView(
+        videoID: "ysz5S6PUM-U",
+        errorLog: AppErrorLog()
+    )
+}

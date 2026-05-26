@@ -4,12 +4,12 @@ import SwiftUI
 struct ErrorLogPanelView: View {
     @ObservedObject var log: AppErrorLog
 
-    @State private var isExpanded = true
+    @State private var isExpanded = false
     @State private var didCopy = false
 
     var body: some View {
         VStack(spacing: 0) {
-            Divider()
+            Divider().overlay(PortTheme.border)
 
             header
 
@@ -18,7 +18,7 @@ struct ErrorLogPanelView: View {
                 actionBar
             }
         }
-        .background(Color(.systemBackground))
+        .background(PortTheme.backgroundElevated)
     }
 
     private var header: some View {
@@ -30,14 +30,15 @@ struct ErrorLogPanelView: View {
             HStack {
                 Label("Лог ошибок", systemImage: "exclamationmark.bubble")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PortTheme.textSubtle)
 
                 if !log.entries.isEmpty {
                     Text("\(log.entries.count)")
                         .font(.caption.weight(.bold))
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2)
-                        .background(Color.red.opacity(0.15))
-                        .foregroundStyle(.red)
+                        .background(PortTheme.danger.opacity(0.18))
+                        .foregroundStyle(PortTheme.danger)
                         .clipShape(Capsule())
                 }
 
@@ -45,7 +46,7 @@ struct ErrorLogPanelView: View {
 
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(PortTheme.textMuted)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -58,7 +59,7 @@ struct ErrorLogPanelView: View {
         if log.entries.isEmpty {
             Text("Ошибок пока нет.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(PortTheme.textMuted)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 10)
@@ -69,7 +70,7 @@ struct ErrorLogPanelView: View {
                         ForEach(log.entries) { entry in
                             Text(entry.formattedLine)
                                 .font(.caption.monospaced())
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(PortTheme.textPrimary)
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .id(entry.id)
@@ -84,7 +85,7 @@ struct ErrorLogPanelView: View {
                     }
                 }
             }
-            .frame(maxHeight: 160)
+            .frame(maxHeight: 140)
         }
     }
 
@@ -93,9 +94,10 @@ struct ErrorLogPanelView: View {
             Button {
                 copyLog()
             } label: {
-                Label(didCopy ? "Скопировано" : "Копировать всё", systemImage: didCopy ? "checkmark" : "doc.on.doc")
+                Label(didCopy ? "Скопировано" : "Копировать", systemImage: didCopy ? "checkmark" : "doc.on.doc")
             }
             .buttonStyle(.bordered)
+            .tint(PortTheme.accent)
             .disabled(log.entries.isEmpty)
 
             Button(role: .destructive) {
@@ -131,7 +133,6 @@ struct ErrorLogPanelView: View {
     ErrorLogPanelView(log: {
         let log = AppErrorLog()
         log.add(source: "Player", message: "YouTube error code 150")
-        log.add(source: "Subtitles", message: "У видео нет открытых субтитров.")
         return log
     }())
 }

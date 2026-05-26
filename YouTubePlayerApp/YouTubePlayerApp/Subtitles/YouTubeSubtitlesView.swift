@@ -4,24 +4,47 @@ import SwiftUI
 struct YouTubeSubtitlesView: View {
     let lines: [YouTubeSubtitleLine]
     let playbackSec: Double?
-    let onLineTap: ((YouTubeSubtitleLine) -> Void)?
+    let sourceLanguage: String
+    let translatedKeys: Set<String>
+    @Binding var translationPreview: String?
+    @Binding var isTranslating: Bool
+    let onTimestampTap: ((YouTubeSubtitleLine) -> Void)?
+    let onWordTranslated: (WordTranslationEntry) -> Void
+    let onTranslationError: (String) -> Void
 
     @State private var userScrollUntil: Date = .distantPast
+    @State private var activeWord: ActiveSubtitleWord?
 
     init(
         lines: [YouTubeSubtitleLine],
         playbackSec: Double?,
-        onLineTap: ((YouTubeSubtitleLine) -> Void)? = nil
+        sourceLanguage: String,
+        translatedKeys: Set<String>,
+        translationPreview: Binding<String?>,
+        isTranslating: Binding<Bool>,
+        onTimestampTap: ((YouTubeSubtitleLine) -> Void)? = nil,
+        onWordTranslated: @escaping (WordTranslationEntry) -> Void,
+        onTranslationError: @escaping (String) -> Void
     ) {
         self.lines = lines
         self.playbackSec = playbackSec
-        self.onLineTap = onLineTap
+        self.sourceLanguage = sourceLanguage
+        self.translatedKeys = translatedKeys
+        self._translationPreview = translationPreview
+        self._isTranslating = isTranslating
+        self.onTimestampTap = onTimestampTap
+        self.onWordTranslated = onWordTranslated
+        self.onTranslationError = onTranslationError
     }
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    if let translationPreview {
+                        translationPreviewBar(translationPreview)
+                    }
+
                     ForEach(lines) { line in
                         subtitleRow(for: line)
                             .id(line.id)
@@ -35,15 +58,14 @@ struct YouTubeSubtitlesView: View {
                 }
             )
             .onChange(of: activeLineID) { newID in
-                guard let newID,
-                      Date() >= userScrollUntil else {
-                    return
-                }
+                guard let newID, Date() >= userScrollUntil else { return }
                 withAnimation(.easeInOut(duration: 0.25)) {
                     proxy.scrollTo(newID, anchor: .center)
                 }
             }
         }
+        .padding(8)
+        .portCard()
     }
 
     private var activeLineID: String? {
@@ -55,54 +77,82 @@ struct YouTubeSubtitlesView: View {
     }
 
     @ViewBuilder
+    private func translationPreviewBar(_ text: String) -> some View {
+        HStack(spacing: 8) {
+            if isTranslating {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(PortTheme.accent)
+            }
+            Text(text)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(PortTheme.heading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(PortTheme.accentSoft)
+        .clipShape(RoundedRectangle(cornerRadius: PortTheme.radiusMD, style: .continuous))
+    }
+
+    @ViewBuilder
     private func subtitleRow(for line: YouTubeSubtitleLine) -> some View {
         let tone = youtubeSubtitleTone(for: line, playbackSec: playbackSec)
 
-        Button {
-            onLineTap?(line)
-        } label: {
-            HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
+            Button {
+                onTimestampTap?(line)
+            } label: {
                 Text(formatSubtitleClock(line.startSec))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(timeColor(for: tone))
                     .frame(width: 42, alignment: .leading)
-
-                Text(line.text)
-                    .font(.body)
-                    .foregroundStyle(textColor(for: tone))
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(backgroundColor(for: tone))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .buttonStyle(.plain)
+
+            InteractiveSubtitleText(
+                text: line.text,
+                lineID: line.id,
+                sourceLanguage: sourceLanguage,
+                translatedKeys: translatedKeys,
+                activeWord: $activeWord,
+                translationPreview: $translationPreview,
+                isTranslating: $isTranslating,
+                onWordTranslated: onWordTranslated,
+                onTranslationError: onTranslationError
+            )
+            .foregroundStyle(textColor(for: tone))
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(backgroundColor(for: tone))
+        .clipShape(RoundedRectangle(cornerRadius: PortTheme.radiusMD, style: .continuous))
+        .accessibilityElement(children: .combine)
         .accessibilityLabel("\(formatSubtitleClock(line.startSec)). \(line.text)")
     }
 
     private func timeColor(for tone: YouTubeSubtitleTone) -> Color {
         switch tone {
-        case .future: return .secondary
-        case .current: return .accentColor
-        case .spoken: return .secondary.opacity(0.8)
+        case .future: return PortTheme.textMuted
+        case .current: return PortTheme.accent
+        case .spoken: return PortTheme.textMuted.opacity(0.85)
         }
     }
 
     private func textColor(for tone: YouTubeSubtitleTone) -> Color {
         switch tone {
-        case .future: return .primary.opacity(0.72)
-        case .current: return .primary
-        case .spoken: return .secondary
+        case .future: return PortTheme.textPrimary.opacity(0.72)
+        case .current: return PortTheme.textPrimary
+        case .spoken: return PortTheme.textMuted
         }
     }
 
     private func backgroundColor(for tone: YouTubeSubtitleTone) -> Color {
         switch tone {
-        case .future: return Color(.tertiarySystemBackground)
-        case .current: return Color.accentColor.opacity(0.14)
-        case .spoken: return Color(.secondarySystemBackground).opacity(0.55)
+        case .future: return PortTheme.surfaceMuted
+        case .current: return PortTheme.accentSoft
+        case .spoken: return PortTheme.surfaceInput.opacity(0.55)
         }
     }
 }
@@ -115,9 +165,16 @@ struct YouTubeSubtitlesView_Previews: PreviewProvider {
                 YouTubeSubtitleLine(id: "1", text: "Olá, como você está?", startSec: 0, endSec: 3),
                 YouTubeSubtitleLine(id: "2", text: "Hoje vamos aprender português.", startSec: 3, endSec: 7)
             ],
-            playbackSec: 3.5
+            playbackSec: 3.5,
+            sourceLanguage: "pt",
+            translatedKeys: ["olá"],
+            translationPreview: .constant("Olá — привет"),
+            isTranslating: .constant(false),
+            onWordTranslated: { _ in },
+            onTranslationError: { _ in }
         )
         .padding()
+        .background(PortTheme.background)
     }
 }
 #endif
