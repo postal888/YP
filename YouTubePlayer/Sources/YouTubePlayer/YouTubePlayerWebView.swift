@@ -71,7 +71,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             self.configuration = configuration
             loadStrategy = strategy
             controller.markLoadingStarted()
-            controller.scheduleLoadTimeout()
+            scheduleStrategyTimeout(for: webView)
 
             guard YouTubePlayerWebLoader.load(
                 configuration: configuration,
@@ -83,9 +83,28 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             }
         }
 
+        private func scheduleStrategyTimeout(for webView: WKWebView) {
+            controller.scheduleLoadTimeout(seconds: 15) { [weak self] in
+                guard let self else { return false }
+                if YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    retryWithNextStrategy(in: webView)
+                    return true
+                }
+                return false
+            }
+        }
+
         private func retryWithNextStrategy(in webView: WKWebView) {
             guard let next = YouTubePlayerWebLoader.nextFallback(after: loadStrategy) else { return }
             loadPlayer(configuration: configuration, in: webView, strategy: next)
+        }
+
+        private func shouldRetry(for bridgeMessage: BridgeMessage) -> Bool {
+            guard YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil else { return false }
+            if case .error(let text) = bridgeMessage {
+                return YouTubePlayerErrorMessages.isRecoverableLoadError(text)
+            }
+            return false
         }
 
         func execute(_ command: YouTubePlayerCommand) {
@@ -115,9 +134,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            if loadStrategy == .directEmbed {
-                evaluate(YouTubePlayerWebLoader.directEmbedBootstrapScript)
-            }
+            // Ready events come from injected page scripts.
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -151,9 +168,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             Task { @MainActor [weak self] in
                 guard let self, let webView else { return }
 
-                if case .error(let text) = bridgeMessage,
-                   YouTubePlayerErrorMessages.isRefererError(text),
-                   YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                if shouldRetry(for: bridgeMessage) {
                     retryWithNextStrategy(in: webView)
                     return
                 }
@@ -233,7 +248,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
             self.configuration = configuration
             loadStrategy = strategy
             controller.markLoadingStarted()
-            controller.scheduleLoadTimeout()
+            scheduleStrategyTimeout(for: webView)
 
             guard YouTubePlayerWebLoader.load(
                 configuration: configuration,
@@ -245,9 +260,28 @@ struct YouTubePlayerWebView: NSViewRepresentable {
             }
         }
 
+        private func scheduleStrategyTimeout(for webView: WKWebView) {
+            controller.scheduleLoadTimeout(seconds: 15) { [weak self] in
+                guard let self else { return false }
+                if YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    retryWithNextStrategy(in: webView)
+                    return true
+                }
+                return false
+            }
+        }
+
         private func retryWithNextStrategy(in webView: WKWebView) {
             guard let next = YouTubePlayerWebLoader.nextFallback(after: loadStrategy) else { return }
             loadPlayer(configuration: configuration, in: webView, strategy: next)
+        }
+
+        private func shouldRetry(for bridgeMessage: BridgeMessage) -> Bool {
+            guard YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil else { return false }
+            if case .error(let text) = bridgeMessage {
+                return YouTubePlayerErrorMessages.isRecoverableLoadError(text)
+            }
+            return false
         }
 
         func execute(_ command: YouTubePlayerCommand) {
@@ -277,9 +311,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            if loadStrategy == .directEmbed {
-                evaluate(YouTubePlayerWebLoader.directEmbedBootstrapScript)
-            }
+            // Ready events come from injected page scripts.
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -313,9 +345,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
             Task { @MainActor [weak self] in
                 guard let self, let webView else { return }
 
-                if case .error(let text) = bridgeMessage,
-                   YouTubePlayerErrorMessages.isRefererError(text),
-                   YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                if shouldRetry(for: bridgeMessage) {
                     retryWithNextStrategy(in: webView)
                     return
                 }

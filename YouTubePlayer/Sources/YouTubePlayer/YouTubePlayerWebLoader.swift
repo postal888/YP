@@ -100,7 +100,6 @@ enum YouTubePlayerWebLoader {
           <meta name="referrer" content="strict-origin-when-cross-origin">
           <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
           <style>html,body{margin:0;height:100%;background:#000}#p{width:100%;height:100%}</style>
-          <script src="https://www.youtube.com/iframe_api"></script>
         </head>
         <body>
           <div id="p"></div>
@@ -108,7 +107,10 @@ enum YouTubePlayerWebLoader {
             function post(msg) {
               try { window.webkit.messageHandlers.youtube.postMessage(msg); } catch (e) {}
             }
-            function onYouTubeIframeAPIReady() {
+
+            var playerReady = false;
+
+            window.onYouTubeIframeAPIReady = function() {
               window.ytPlayer = new YT.Player('p', {
                 host: 'https://www.youtube-nocookie.com',
                 videoId: '\(safeId)',
@@ -127,6 +129,7 @@ enum YouTubePlayerWebLoader {
                 },
                 events: {
                   onReady: function() {
+                    playerReady = true;
                     post({ event: 'ready' });
                     setInterval(function() {
                       if (!window.ytPlayer || !window.ytPlayer.getCurrentTime) return;
@@ -141,14 +144,104 @@ enum YouTubePlayerWebLoader {
                   onError: function(e) { post({ event: 'error', code: e.data }); }
                 }
               });
-            }
+            };
+
+            var apiTag = document.createElement('script');
+            apiTag.src = 'https://www.youtube.com/iframe_api';
+            apiTag.onerror = function() {
+              post({ event: 'error', message: 'Failed to load YouTube iframe API' });
+            };
+            document.head.appendChild(apiTag);
+
+            window.setTimeout(function() {
+              if (!playerReady) {
+                post({ event: 'error', message: 'YouTube iframe API load timeout' });
+              }
+            }, 12000);
           </script>
         </body>
         </html>
         """
     }
 
-    static let bridgeScriptSource = """
+    static func directEmbedHTML(for configuration: YouTubePlayerConfiguration) -> String {
+        guard let embedURL = directEmbedRequest(for: configuration)?.url?.absoluteString else {
+            return inlineHTML(for: configuration)
+        }
+        let escapedURL = embedURL
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="referrer" content="strict-origin-when-cross-origin">
+          <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+          <style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>
+        </head>
+        <body>
+          <iframe id="player" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          <script>
+            function post(msg) {
+              try { window.webkit.messageHandlers.youtube.postMessage(msg); } catch (e) {}
+            }
+
+            var iframe = document.getElementById('player');
+            var readySent = false;
+
+            function markReady() {
+              if (readySent) return;
+              readySent = true;
+              post({ event: 'ready' });
+            }
+
+            iframe.src = '\(escapedURL)';
+
+            window.addEventListener('message', function(event) {
+              if (!event.origin || event.origin.indexOf('youtube.com') < 0) return;
+              var data = event.data;
+              if (typeof data === 'string') {
+                try { data = JSON.parse(data); } catch (e) { return; }
+              }
+              if (!data || !data.event) return;
+              if (data.event === 'onReady' || data.event === 'ready') {
+                markReady();
+              }
+              if (data.event === 'infoDelivery' && data.info) {
+                post({
+                  event: 'time',
+                  currentTime: data.info.currentTime || 0,
+                  duration: data.info.duration || 0,
+                  playerState: data.info.playerState
+                });
+              }
+              if (data.event === 'onError' && typeof data.info === 'number') {
+                post({ event: 'error', code: data.info });
+              }
+            });
+
+            iframe.addEventListener('load', function() {
+              window.setTimeout(function() {
+                try {
+                  iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1 }), '*');
+                } catch (e) {}
+                markReady();
+              }, 500);
+            });
+
+            window.setTimeout(function() {
+              if (!readySent) {
+                post({ event: 'error', message: 'Direct embed iframe load timeout' });
+              }
+            }, 12000);
+          </script>
+        </body>
+        </html>
+        """
+    }
+
     (function () {
       function forward(data) {
         if (!data || typeof data !== 'object') return;
@@ -196,7 +289,12 @@ enum YouTubePlayerWebLoader {
             webView.loadHTMLString(html, baseURL: URL(string: referer))
             return true
 
-        case .hostedProxy, .directEmbed:
+        case .directEmbed:
+            let html = directEmbedHTML(for: configuration)
+            webView.loadHTMLString(html, baseURL: URL(string: referer))
+            return true
+
+        case .hostedProxy:
             guard let request = request(for: configuration, strategy: strategy, captionLanguage: configuration.captionLanguage) else {
                 return false
             }
@@ -231,5 +329,11 @@ enum YouTubePlayerErrorMessages {
 
     static func isRefererError(_ message: String) -> Bool {
         message.contains("152") || message.contains("153") || message.lowercased().contains("referer")
+    }
+
+    static func isRecoverableLoadError(_ message: String) -> Bool {
+        isRefererError(message)
+            || message.lowercased().contains("timeout")
+            || message.lowercased().contains("iframe api")
     }
 }
