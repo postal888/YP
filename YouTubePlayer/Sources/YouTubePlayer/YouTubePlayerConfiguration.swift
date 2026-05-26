@@ -19,6 +19,7 @@ public enum YouTubePlayerEvent: Equatable, Sendable {
     case progress(currentTime: Double, duration: Double)
     case ended
     case error(String)
+    case debug(String)
 }
 
 /// Конфигурация встраиваемого YouTube-плеера.

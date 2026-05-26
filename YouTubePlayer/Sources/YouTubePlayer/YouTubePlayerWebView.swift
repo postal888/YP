@@ -32,11 +32,14 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = .black
         webView.scrollView.isScrollEnabled = false
-        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         webView.navigationDelegate = context.coordinator
 
         context.coordinator.webView = webView
-        context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .inlineHTML)
+        context.coordinator.loadPlayer(
+            configuration: configuration,
+            in: webView,
+            strategy: YouTubePlayerWebLoader.firstStrategy
+        )
 
         return webView
     }
@@ -44,7 +47,11 @@ struct YouTubePlayerWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         if context.coordinator.configuration != configuration {
             context.coordinator.configuration = configuration
-            context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .inlineHTML)
+            context.coordinator.loadPlayer(
+                configuration: configuration,
+                in: webView,
+                strategy: YouTubePlayerWebLoader.firstStrategy
+            )
         }
 
         if let command = controller.consumePendingCommand() {
@@ -56,7 +63,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         var configuration: YouTubePlayerConfiguration
         weak var webView: WKWebView?
         private let controller: YouTubePlayerController
-        private var loadStrategy: YouTubePlayerLoadStrategy = .inlineHTML
+        private var loadStrategy: YouTubePlayerLoadStrategy = YouTubePlayerWebLoader.firstStrategy
 
         init(controller: YouTubePlayerController, configuration: YouTubePlayerConfiguration? = nil) {
             self.controller = controller
@@ -71,6 +78,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             self.configuration = configuration
             loadStrategy = strategy
             controller.markLoadingStarted()
+            controller.onEvent?(.debug("Loading strategy: \(YouTubePlayerWebLoader.strategyLabel(strategy)), videoID=\(configuration.videoID)"))
             scheduleStrategyTimeout(for: webView)
 
             guard YouTubePlayerWebLoader.load(
@@ -84,9 +92,10 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         }
 
         private func scheduleStrategyTimeout(for webView: WKWebView) {
-            controller.scheduleLoadTimeout(seconds: 15) { [weak self] in
+            controller.scheduleLoadTimeout(seconds: 20) { [weak self] in
                 guard let self else { return false }
                 if YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    controller.onEvent?(.debug("Strategy timeout: \(YouTubePlayerWebLoader.strategyLabel(loadStrategy)), trying fallback"))
                     retryWithNextStrategy(in: webView)
                     return true
                 }
@@ -110,13 +119,13 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         func execute(_ command: YouTubePlayerCommand) {
             switch command {
             case .play:
-                evaluate("if(window.ytPlayer){window.ytPlayer.playVideo();}")
+                evaluate(YouTubePlayerWebLoader.playVideoScript)
 
             case .pause:
-                evaluate("if(window.ytPlayer){window.ytPlayer.pauseVideo();}")
+                evaluate(YouTubePlayerWebLoader.pauseVideoScript)
 
             case .seek(let seconds):
-                evaluate("if(window.ytPlayer){window.ytPlayer.seekTo(\(seconds), true);}")
+                evaluate(YouTubePlayerWebLoader.seekVideoScript(seconds: seconds))
 
             case .load(let videoID, let startTime):
                 var updated = configuration
@@ -124,7 +133,11 @@ struct YouTubePlayerWebView: UIViewRepresentable {
                 updated.startTime = startTime
                 configuration = updated
                 if let webView {
-                    loadPlayer(configuration: updated, in: webView, strategy: .inlineHTML)
+                    loadPlayer(
+                        configuration: updated,
+                        in: webView,
+                        strategy: YouTubePlayerWebLoader.firstStrategy
+                    )
                 }
             }
         }
@@ -134,7 +147,9 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            // Ready events come from injected page scripts.
+            if loadStrategy == .directEmbed {
+                evaluate(YouTubePlayerWebLoader.embedPageBridgeScript)
+            }
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -168,7 +183,15 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             Task { @MainActor [weak self] in
                 guard let self, let webView else { return }
 
+                if case .debug(let text) = bridgeMessage {
+                    controller.onEvent?(.debug(text))
+                    return
+                }
+
                 if shouldRetry(for: bridgeMessage) {
+                    if case .error(let text) = bridgeMessage {
+                        controller.onEvent?(.debug("Strategy error (\(YouTubePlayerWebLoader.strategyLabel(loadStrategy))): \(text), trying fallback"))
+                    }
                     retryWithNextStrategy(in: webView)
                     return
                 }
@@ -213,7 +236,11 @@ struct YouTubePlayerWebView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
 
         context.coordinator.webView = webView
-        context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .inlineHTML)
+        context.coordinator.loadPlayer(
+            configuration: configuration,
+            in: webView,
+            strategy: YouTubePlayerWebLoader.firstStrategy
+        )
 
         return webView
     }
@@ -221,7 +248,11 @@ struct YouTubePlayerWebView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         if context.coordinator.configuration != configuration {
             context.coordinator.configuration = configuration
-            context.coordinator.loadPlayer(configuration: configuration, in: webView, strategy: .inlineHTML)
+            context.coordinator.loadPlayer(
+                configuration: configuration,
+                in: webView,
+                strategy: YouTubePlayerWebLoader.firstStrategy
+            )
         }
 
         if let command = controller.consumePendingCommand() {
@@ -233,7 +264,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
         var configuration: YouTubePlayerConfiguration
         weak var webView: WKWebView?
         private let controller: YouTubePlayerController
-        private var loadStrategy: YouTubePlayerLoadStrategy = .inlineHTML
+        private var loadStrategy: YouTubePlayerLoadStrategy = YouTubePlayerWebLoader.firstStrategy
 
         init(controller: YouTubePlayerController, configuration: YouTubePlayerConfiguration? = nil) {
             self.controller = controller
@@ -248,6 +279,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
             self.configuration = configuration
             loadStrategy = strategy
             controller.markLoadingStarted()
+            controller.onEvent?(.debug("Loading strategy: \(YouTubePlayerWebLoader.strategyLabel(strategy)), videoID=\(configuration.videoID)"))
             scheduleStrategyTimeout(for: webView)
 
             guard YouTubePlayerWebLoader.load(
@@ -261,9 +293,10 @@ struct YouTubePlayerWebView: NSViewRepresentable {
         }
 
         private func scheduleStrategyTimeout(for webView: WKWebView) {
-            controller.scheduleLoadTimeout(seconds: 15) { [weak self] in
+            controller.scheduleLoadTimeout(seconds: 20) { [weak self] in
                 guard let self else { return false }
                 if YouTubePlayerWebLoader.nextFallback(after: loadStrategy) != nil {
+                    controller.onEvent?(.debug("Strategy timeout: \(YouTubePlayerWebLoader.strategyLabel(loadStrategy)), trying fallback"))
                     retryWithNextStrategy(in: webView)
                     return true
                 }
@@ -287,13 +320,13 @@ struct YouTubePlayerWebView: NSViewRepresentable {
         func execute(_ command: YouTubePlayerCommand) {
             switch command {
             case .play:
-                evaluate("if(window.ytPlayer){window.ytPlayer.playVideo();}")
+                evaluate(YouTubePlayerWebLoader.playVideoScript)
 
             case .pause:
-                evaluate("if(window.ytPlayer){window.ytPlayer.pauseVideo();}")
+                evaluate(YouTubePlayerWebLoader.pauseVideoScript)
 
             case .seek(let seconds):
-                evaluate("if(window.ytPlayer){window.ytPlayer.seekTo(\(seconds), true);}")
+                evaluate(YouTubePlayerWebLoader.seekVideoScript(seconds: seconds))
 
             case .load(let videoID, let startTime):
                 var updated = configuration
@@ -301,7 +334,11 @@ struct YouTubePlayerWebView: NSViewRepresentable {
                 updated.startTime = startTime
                 configuration = updated
                 if let webView {
-                    loadPlayer(configuration: updated, in: webView, strategy: .inlineHTML)
+                    loadPlayer(
+                        configuration: updated,
+                        in: webView,
+                        strategy: YouTubePlayerWebLoader.firstStrategy
+                    )
                 }
             }
         }
@@ -311,7 +348,9 @@ struct YouTubePlayerWebView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            // Ready events come from injected page scripts.
+            if loadStrategy == .directEmbed {
+                evaluate(YouTubePlayerWebLoader.embedPageBridgeScript)
+            }
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -345,7 +384,15 @@ struct YouTubePlayerWebView: NSViewRepresentable {
             Task { @MainActor [weak self] in
                 guard let self, let webView else { return }
 
+                if case .debug(let text) = bridgeMessage {
+                    controller.onEvent?(.debug(text))
+                    return
+                }
+
                 if shouldRetry(for: bridgeMessage) {
+                    if case .error(let text) = bridgeMessage {
+                        controller.onEvent?(.debug("Strategy error (\(YouTubePlayerWebLoader.strategyLabel(loadStrategy))): \(text), trying fallback"))
+                    }
                     retryWithNextStrategy(in: webView)
                     return
                 }

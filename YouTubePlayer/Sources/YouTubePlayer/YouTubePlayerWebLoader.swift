@@ -4,21 +4,22 @@ import WebKit
 #endif
 
 enum YouTubePlayerLoadStrategy: Equatable {
+    case directEmbed
     case inlineHTML
     case hostedProxy
-    case directEmbed
 }
 
 enum YouTubePlayerWebLoader {
     static let hostedProxyBaseURL = "https://cdn.jsdelivr.net/gh/postal888/YP@main/YouTubePlayer/Sources/YouTubePlayer/Resources/youtube-embed.html"
     static let referer = "https://www.youtube.com/"
     static let embedOrigin = "https://www.youtube.com"
+    static let firstStrategy: YouTubePlayerLoadStrategy = .directEmbed
 
     static func nextFallback(after strategy: YouTubePlayerLoadStrategy) -> YouTubePlayerLoadStrategy? {
         switch strategy {
+        case .directEmbed: return .inlineHTML
         case .inlineHTML: return .hostedProxy
-        case .hostedProxy: return .directEmbed
-        case .directEmbed: return nil
+        case .hostedProxy: return nil
         }
     }
 
@@ -164,81 +165,84 @@ enum YouTubePlayerWebLoader {
         """
     }
 
-    static func directEmbedHTML(for configuration: YouTubePlayerConfiguration) -> String {
-        guard let embedURL = directEmbedRequest(for: configuration)?.url?.absoluteString else {
-            return inlineHTML(for: configuration)
+    static let embedPageBridgeScript = """
+    (function () {
+      if (window.__ytEmbedBridgeInstalled) return;
+      window.__ytEmbedBridgeInstalled = true;
+
+      function post(msg) {
+        try { window.webkit.messageHandlers.youtube.postMessage(msg); } catch (e) {}
+      }
+
+      var readySent = false;
+
+      function markReady() {
+        if (readySent) return;
+        readySent = true;
+        post({ event: 'ready' });
+      }
+
+      window.addEventListener('message', function (event) {
+        if (!event.origin || event.origin.indexOf('youtube.com') < 0) return;
+        var data = event.data;
+        if (typeof data === 'string') {
+          try { data = JSON.parse(data); } catch (e) { return; }
         }
-        let escapedURL = embedURL
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "'", with: "\\'")
+        if (!data || !data.event) return;
+        if (data.event === 'onReady' || data.event === 'ready') markReady();
+        if (data.event === 'infoDelivery' && data.info) {
+          post({
+            event: 'time',
+            currentTime: data.info.currentTime || 0,
+            duration: data.info.duration || 0,
+            playerState: data.info.playerState
+          });
+        }
+        if (data.event === 'onError' && typeof data.info === 'number') {
+          post({ event: 'error', code: data.info });
+        }
+      });
 
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="referrer" content="strict-origin-when-cross-origin">
-          <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-          <style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>
-        </head>
-        <body>
-          <iframe id="player" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-          <script>
-            function post(msg) {
-              try { window.webkit.messageHandlers.youtube.postMessage(msg); } catch (e) {}
-            }
+      window.setInterval(function () {
+        var video = document.querySelector('video');
+        if (!video) return;
+        if (!readySent && video.readyState >= 2) markReady();
+        if (!isNaN(video.currentTime)) {
+          post({
+            event: 'time',
+            currentTime: video.currentTime,
+            duration: video.duration || 0,
+            playerState: video.paused ? 2 : 1
+          });
+        }
+      }, 500);
+    })();
+    """
 
-            var iframe = document.getElementById('player');
-            var readySent = false;
+    static let playVideoScript = """
+    (function () {
+      if (window.ytPlayer && window.ytPlayer.playVideo) { window.ytPlayer.playVideo(); return; }
+      try { window.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: '' }), '*'); } catch (e) {}
+      var video = document.querySelector('video'); if (video) video.play();
+    })();
+    """
 
-            function markReady() {
-              if (readySent) return;
-              readySent = true;
-              post({ event: 'ready' });
-            }
+    static let pauseVideoScript = """
+    (function () {
+      if (window.ytPlayer && window.ytPlayer.pauseVideo) { window.ytPlayer.pauseVideo(); return; }
+      try { window.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }), '*'); } catch (e) {}
+      var video = document.querySelector('video'); if (video) video.pause();
+    })();
+    """
 
-            iframe.src = '\(escapedURL)';
-
-            window.addEventListener('message', function(event) {
-              if (!event.origin || event.origin.indexOf('youtube.com') < 0) return;
-              var data = event.data;
-              if (typeof data === 'string') {
-                try { data = JSON.parse(data); } catch (e) { return; }
-              }
-              if (!data || !data.event) return;
-              if (data.event === 'onReady' || data.event === 'ready') {
-                markReady();
-              }
-              if (data.event === 'infoDelivery' && data.info) {
-                post({
-                  event: 'time',
-                  currentTime: data.info.currentTime || 0,
-                  duration: data.info.duration || 0,
-                  playerState: data.info.playerState
-                });
-              }
-              if (data.event === 'onError' && typeof data.info === 'number') {
-                post({ event: 'error', code: data.info });
-              }
-            });
-
-            iframe.addEventListener('load', function() {
-              window.setTimeout(function() {
-                try {
-                  iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1 }), '*');
-                } catch (e) {}
-                markReady();
-              }, 500);
-            });
-
-            window.setTimeout(function() {
-              if (!readySent) {
-                post({ event: 'error', message: 'Direct embed iframe load timeout' });
-              }
-            }, 12000);
-          </script>
-        </body>
-        </html>
+    static func seekVideoScript(seconds: Double) -> String {
+        """
+        (function () {
+          var sec = \(seconds);
+          if (window.ytPlayer && window.ytPlayer.seekTo) { window.ytPlayer.seekTo(sec, true); return; }
+          try { window.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [sec, true] }), '*'); } catch (e) {}
+          var video = document.querySelector('video'); if (video) video.currentTime = sec;
+        })();
         """
     }
 
@@ -291,8 +295,10 @@ enum YouTubePlayerWebLoader {
             return true
 
         case .directEmbed:
-            let html = directEmbedHTML(for: configuration)
-            webView.loadHTMLString(html, baseURL: URL(string: referer))
+            guard let request = directEmbedRequest(for: configuration) else {
+                return false
+            }
+            webView.load(request)
             return true
 
         case .hostedProxy:
@@ -311,6 +317,14 @@ enum YouTubePlayerWebLoader {
         request.setValue(referer, forHTTPHeaderField: "Referer")
         request.setValue(embedOrigin, forHTTPHeaderField: "Origin")
         return request
+    }
+
+    static func strategyLabel(_ strategy: YouTubePlayerLoadStrategy) -> String {
+        switch strategy {
+        case .directEmbed: return "directEmbed"
+        case .inlineHTML: return "inlineHTML"
+        case .hostedProxy: return "hostedProxy"
+        }
     }
 }
 

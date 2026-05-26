@@ -62,7 +62,6 @@ struct ContentView: View {
 
         if let videoID = YouTubeVideoIDExtractor.extract(from: trimmed) {
             resolvedVideoID = videoID
-            playerController.load(videoID: videoID, startTime: 0)
         } else {
             resolvedVideoID = nil
             errorLog.add(

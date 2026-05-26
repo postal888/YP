@@ -188,6 +188,9 @@ struct LessonPlayerView: View {
         case .error(let message):
             logPlayerError(message)
 
+        case .debug(let message):
+            errorLog.add(source: "Player", message: message)
+
         default:
             break
         }

@@ -57,7 +57,7 @@ public final class YouTubePlayerController: ObservableObject {
         state = .loading
         currentTime = 0
         duration = 0
-        scheduleLoadTimeout()
+        cancelLoadTimeout()
         send(.load(videoID: videoID, startTime: startTime))
     }
 
@@ -101,6 +101,9 @@ public final class YouTubePlayerController: ObservableObject {
             cancelLoadTimeout()
             updateState(.error(text))
             onEvent?(.error(text))
+
+        case .debug(let text):
+            onEvent?(.debug(text))
         }
     }
 
@@ -127,6 +130,7 @@ enum BridgeMessage: Equatable {
     case progress(current: Double, duration: Double)
     case ended
     case error(String)
+    case debug(String)
 
     init?(body: Any) {
         guard let dictionary = body as? [String: Any],
@@ -170,6 +174,10 @@ enum BridgeMessage: Equatable {
 
         case "ping":
             return nil
+
+        case "debug":
+            let message = dictionary["message"] as? String ?? "debug"
+            self = .debug(message)
 
         default:
             return nil
