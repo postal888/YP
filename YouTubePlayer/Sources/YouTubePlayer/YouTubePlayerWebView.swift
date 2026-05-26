@@ -18,6 +18,13 @@ struct YouTubePlayerWebView: UIViewRepresentable {
 
         let userContentController = WKUserContentController()
         userContentController.add(context.coordinator, name: "youtube")
+        userContentController.addUserScript(
+            WKUserScript(
+                source: YouTubePlayerWebLoader.bridgeScriptSource,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: true
+            )
+        )
         webConfiguration.userContentController = userContentController
 
         let webView = WKWebView(frame: .zero, configuration: webConfiguration)
@@ -34,7 +41,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        if context.coordinator.configuration.videoID != configuration.videoID {
+        if context.coordinator.configuration != configuration {
             context.coordinator.configuration = configuration
             context.coordinator.loadPlayer(configuration: configuration, in: webView)
         }
@@ -57,32 +64,36 @@ struct YouTubePlayerWebView: UIViewRepresentable {
         func loadPlayer(configuration: YouTubePlayerConfiguration, in webView: WKWebView) {
             self.configuration = configuration
 
-            guard let templateURL = Bundle.module.url(forResource: "youtube_player", withExtension: "html"),
-                  var html = try? String(contentsOf: templateURL, encoding: .utf8) else {
-                controller.handleBridgeMessage(.error("Failed to load player template"))
+            guard let request = YouTubePlayerWebLoader.proxyRequest(
+                for: configuration,
+                captionLanguage: configuration.captionLanguage
+            ) else {
+                controller.handleBridgeMessage(.error("Failed to build YouTube proxy request"))
                 return
             }
 
-            let intervalMs = Int(configuration.progressPollingInterval * 1000)
-            html = html.replacingOccurrences(of: "{{PROGRESS_INTERVAL_MS}}", with: String(intervalMs))
-
-            webView.loadHTMLString(html, baseURL: URL(string: "https://www.youtube.com/")!)
+            webView.load(request)
         }
 
         func execute(_ command: YouTubePlayerCommand) {
             switch command {
             case .play:
-                evaluate("window.youtubeBridge.play();")
+                evaluate("if(window.ytPlayer){window.ytPlayer.playVideo();}")
 
             case .pause:
-                evaluate("window.youtubeBridge.pause();")
+                evaluate("if(window.ytPlayer){window.ytPlayer.pauseVideo();}")
 
             case .seek(let seconds):
-                evaluate("window.youtubeBridge.seekTo(\(seconds));")
+                evaluate("if(window.ytPlayer){window.ytPlayer.seekTo(\(seconds), true);}")
 
             case .load(let videoID, let startTime):
-                let escapedID = videoID.replacingOccurrences(of: "'", with: "\\'")
-                evaluate("window.youtubeBridge.loadVideo('\(escapedID)', \(startTime));")
+                var updated = configuration
+                updated.videoID = videoID
+                updated.startTime = startTime
+                configuration = updated
+                if let webView {
+                    loadPlayer(configuration: updated, in: webView)
+                }
             }
         }
 
@@ -90,23 +101,15 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             webView?.evaluateJavaScript(script, completionHandler: nil)
         }
 
-        private func createPlayerScript() -> String {
-            let configJSON = """
-            {
-              "videoId": "\(configuration.videoID)",
-              "autoplay": \(configuration.autoplay),
-              "startTime": \(configuration.startTime),
-              "showControls": \(configuration.showControls),
-              "allowFullscreen": \(configuration.allowFullscreen),
-              "playsInline": \(configuration.playsInline)
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            Task { @MainActor [controller] in
+                controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
             }
-            """
-            return "window.youtubeBridge.createPlayer(\(configJSON));"
         }
 
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                self.evaluate(self.createPlayerScript())
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            Task { @MainActor [controller] in
+                controller.handleBridgeMessage(.error("WebView load failed: \(error.localizedDescription)"))
             }
         }
 
@@ -143,6 +146,13 @@ struct YouTubePlayerWebView: NSViewRepresentable {
 
         let userContentController = WKUserContentController()
         userContentController.add(context.coordinator, name: "youtube")
+        userContentController.addUserScript(
+            WKUserScript(
+                source: YouTubePlayerWebLoader.bridgeScriptSource,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: true
+            )
+        )
         webConfiguration.userContentController = userContentController
 
         let webView = WKWebView(frame: .zero, configuration: webConfiguration)
@@ -155,7 +165,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        if context.coordinator.configuration.videoID != configuration.videoID {
+        if context.coordinator.configuration != configuration {
             context.coordinator.configuration = configuration
             context.coordinator.loadPlayer(configuration: configuration, in: webView)
         }
@@ -178,57 +188,41 @@ struct YouTubePlayerWebView: NSViewRepresentable {
         func loadPlayer(configuration: YouTubePlayerConfiguration, in webView: WKWebView) {
             self.configuration = configuration
 
-            guard let templateURL = Bundle.module.url(forResource: "youtube_player", withExtension: "html"),
-                  var html = try? String(contentsOf: templateURL, encoding: .utf8) else {
-                controller.handleBridgeMessage(.error("Failed to load player template"))
+            guard let request = YouTubePlayerWebLoader.proxyRequest(
+                for: configuration,
+                captionLanguage: configuration.captionLanguage
+            ) else {
+                controller.handleBridgeMessage(.error("Failed to build YouTube proxy request"))
                 return
             }
 
-            let intervalMs = Int(configuration.progressPollingInterval * 1000)
-            html = html.replacingOccurrences(of: "{{PROGRESS_INTERVAL_MS}}", with: String(intervalMs))
-
-            webView.loadHTMLString(html, baseURL: URL(string: "https://www.youtube.com/")!)
+            webView.load(request)
         }
 
         func execute(_ command: YouTubePlayerCommand) {
             switch command {
             case .play:
-                evaluate("window.youtubeBridge.play();")
+                evaluate("if(window.ytPlayer){window.ytPlayer.playVideo();}")
 
             case .pause:
-                evaluate("window.youtubeBridge.pause();")
+                evaluate("if(window.ytPlayer){window.ytPlayer.pauseVideo();}")
 
             case .seek(let seconds):
-                evaluate("window.youtubeBridge.seekTo(\(seconds));")
+                evaluate("if(window.ytPlayer){window.ytPlayer.seekTo(\(seconds), true);}")
 
             case .load(let videoID, let startTime):
-                let escapedID = videoID.replacingOccurrences(of: "'", with: "\\'")
-                evaluate("window.youtubeBridge.loadVideo('\(escapedID)', \(startTime));")
+                var updated = configuration
+                updated.videoID = videoID
+                updated.startTime = startTime
+                configuration = updated
+                if let webView {
+                    loadPlayer(configuration: updated, in: webView)
+                }
             }
         }
 
         private func evaluate(_ script: String) {
             webView?.evaluateJavaScript(script, completionHandler: nil)
-        }
-
-        private func createPlayerScript() -> String {
-            let configJSON = """
-            {
-              "videoId": "\(configuration.videoID)",
-              "autoplay": \(configuration.autoplay),
-              "startTime": \(configuration.startTime),
-              "showControls": \(configuration.showControls),
-              "allowFullscreen": \(configuration.allowFullscreen),
-              "playsInline": \(configuration.playsInline)
-            }
-            """
-            return "window.youtubeBridge.createPlayer(\(configJSON));"
-        }
-
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                self.evaluate(self.createPlayerScript())
-            }
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {

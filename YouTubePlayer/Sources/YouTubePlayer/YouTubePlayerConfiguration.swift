@@ -30,6 +30,7 @@ public struct YouTubePlayerConfiguration: Equatable, Sendable {
     public var allowFullscreen: Bool
     public var playsInline: Bool
     public var progressPollingInterval: TimeInterval
+    public var captionLanguage: String
 
     public init(
         videoID: String,
@@ -38,7 +39,8 @@ public struct YouTubePlayerConfiguration: Equatable, Sendable {
         showControls: Bool = true,
         allowFullscreen: Bool = true,
         playsInline: Bool = true,
-        progressPollingInterval: TimeInterval = 1.0
+        progressPollingInterval: TimeInterval = 1.0,
+        captionLanguage: String = "pt"
     ) {
         self.videoID = videoID
         self.autoplay = autoplay
@@ -47,6 +49,7 @@ public struct YouTubePlayerConfiguration: Equatable, Sendable {
         self.allowFullscreen = allowFullscreen
         self.playsInline = playsInline
         self.progressPollingInterval = progressPollingInterval
+        self.captionLanguage = captionLanguage
     }
 }
 

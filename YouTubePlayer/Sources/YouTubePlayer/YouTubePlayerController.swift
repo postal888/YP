@@ -53,11 +53,16 @@ public final class YouTubePlayerController: ObservableObject {
             let mapped = mapPlayerState(rawValue)
             updateState(mapped)
             onEvent?(.stateChanged(mapped))
+            if rawValue == 0 {
+                onEvent?(.ended)
+            }
 
         case .progress(let current, let total):
             currentTime = current
-            duration = total
-            onEvent?(.progress(currentTime: current, duration: total))
+            if total > 0 {
+                duration = total
+            }
+            onEvent?(.progress(currentTime: current, duration: duration > 0 ? duration : total))
 
         case .ended:
             updateState(.ended)
@@ -103,9 +108,17 @@ enum BridgeMessage: Equatable {
         case "ready":
             self = .ready
 
+        case "time":
+            let current = (dictionary["currentTime"] as? NSNumber)?.doubleValue ?? 0
+            let total = (dictionary["duration"] as? NSNumber)?.doubleValue ?? 0
+            self = .progress(current: current, duration: total)
+
         case "state":
-            guard let value = dictionary["data"] as? Int else { return nil }
-            self = .state(value)
+            if let value = dictionary["playerState"] as? Int ?? dictionary["data"] as? Int {
+                self = .state(value)
+            } else {
+                return nil
+            }
 
         case "progress":
             guard let current = dictionary["currentTime"] as? Double,
@@ -118,11 +131,10 @@ enum BridgeMessage: Equatable {
             self = .ended
 
         case "error":
-            let code = dictionary["code"] as? Int
-            let message = dictionary["message"] as? String ?? "Unknown player error"
-            if let code {
-                self = .error("\(message) (code \(code))")
+            if let code = dictionary["code"] as? Int {
+                self = .error(YouTubePlayerErrorMessages.message(for: code))
             } else {
+                let message = dictionary["message"] as? String ?? "Unknown player error"
                 self = .error(message)
             }
 

@@ -22,11 +22,15 @@ struct LessonPlayerView: View {
                 .font(.headline)
 
             YouTubePlayerView(
-                videoID: videoID,
-                controller: controller,
-                showControls: true,
-                progressPollingInterval: 0.25
+                configuration: YouTubePlayerConfiguration(
+                    videoID: videoID,
+                    showControls: true,
+                    progressPollingInterval: 0.25,
+                    captionLanguage: selectedLanguage.rawValue
+                ),
+                controller: controller
             )
+            .id("\(videoID)-\(selectedLanguage.rawValue)")
             .frame(height: 220)
             .onAppear {
                 controller.onEvent = handlePlayerEvent

@@ -14,7 +14,8 @@ public struct YouTubePlayerView: View {
         showControls: Bool = true,
         allowFullscreen: Bool = true,
         playsInline: Bool = true,
-        progressPollingInterval: TimeInterval = 1.0
+        progressPollingInterval: TimeInterval = 1.0,
+        captionLanguage: String = "pt"
     ) {
         self.configuration = YouTubePlayerConfiguration(
             videoID: videoID,
@@ -23,7 +24,8 @@ public struct YouTubePlayerView: View {
             showControls: showControls,
             allowFullscreen: allowFullscreen,
             playsInline: playsInline,
-            progressPollingInterval: progressPollingInterval
+            progressPollingInterval: progressPollingInterval,
+            captionLanguage: captionLanguage
         )
         self._controller = ObservedObject(wrappedValue: controller)
     }
