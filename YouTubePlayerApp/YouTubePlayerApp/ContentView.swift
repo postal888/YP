@@ -9,7 +9,7 @@ struct ContentView: View {
     @StateObject private var errorLog = AppErrorLog()
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
@@ -48,6 +48,7 @@ struct ContentView: View {
                 ErrorLogPanelView(log: errorLog)
             }
             .navigationTitle("YouTube Player")
+            .navigationViewStyle(.stack)
         }
     }
 
