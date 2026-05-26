@@ -2,6 +2,7 @@
 import SwiftUI
 import WebKit
 
+@MainActor
 struct YouTubePlayerWebView: UIViewRepresentable {
     let configuration: YouTubePlayerConfiguration
     @ObservedObject var controller: YouTubePlayerController
@@ -114,7 +115,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
                 return
             }
 
-            Task { @MainActor in
+            Task { @MainActor [controller] in
                 controller.handleBridgeMessage(bridgeMessage)
             }
         }
@@ -126,6 +127,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
 import SwiftUI
 import WebKit
 
+@MainActor
 struct YouTubePlayerWebView: NSViewRepresentable {
     let configuration: YouTubePlayerConfiguration
     @ObservedObject var controller: YouTubePlayerController
@@ -234,7 +236,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
                 return
             }
 
-            Task { @MainActor in
+            Task { @MainActor [controller] in
                 controller.handleBridgeMessage(bridgeMessage)
             }
         }

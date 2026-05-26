@@ -1,6 +1,7 @@
 import SwiftUI
 import YouTubePlayer
 
+@MainActor
 struct LessonPlayerView: View {
     let videoID: String
     @ObservedObject var controller: YouTubePlayerController

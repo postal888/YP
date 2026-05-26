@@ -1,13 +1,14 @@
 import SwiftUI
 
 /// Встраиваемый YouTube-плеер для образовательных экранов.
+@MainActor
 public struct YouTubePlayerView: View {
     private let configuration: YouTubePlayerConfiguration
     @ObservedObject private var controller: YouTubePlayerController
 
     public init(
         videoID: String,
-        controller: YouTubePlayerController = YouTubePlayerController(),
+        controller: YouTubePlayerController,
         autoplay: Bool = false,
         startTime: Double = 0,
         showControls: Bool = true,
@@ -29,7 +30,7 @@ public struct YouTubePlayerView: View {
 
     public init(
         configuration: YouTubePlayerConfiguration,
-        controller: YouTubePlayerController = YouTubePlayerController()
+        controller: YouTubePlayerController
     ) {
         self.configuration = configuration
         self._controller = ObservedObject(wrappedValue: controller)
@@ -66,12 +67,11 @@ public struct YouTubePlayerView: View {
     }
 }
 
-#if DEBUG
-struct YouTubePlayerView_Previews: PreviewProvider {
-    static var previews: some View {
-        YouTubePlayerView(videoID: "dQw4w9WgXcQ")
-            .frame(height: 220)
-            .padding()
-    }
+#Preview {
+    YouTubePlayerView(
+        videoID: "dQw4w9WgXcQ",
+        controller: YouTubePlayerController()
+    )
+    .frame(height: 220)
+    .padding()
 }
-#endif

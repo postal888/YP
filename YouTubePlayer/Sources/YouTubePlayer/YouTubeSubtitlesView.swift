@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 public struct YouTubeSubtitlesView: View {
     public let lines: [YouTubeSubtitleLine]
     public let playbackSec: Double?

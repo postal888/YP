@@ -1,6 +1,7 @@
 import SwiftUI
 import YouTubePlayer
 
+@MainActor
 struct ContentView: View {
     @State private var inputURL = "https://www.youtube.com/watch?v=ysz5S6PUM-U"
     @State private var resolvedVideoID: String?
