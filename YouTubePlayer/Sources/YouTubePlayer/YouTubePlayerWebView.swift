@@ -65,7 +65,7 @@ struct YouTubePlayerWebView: UIViewRepresentable {
             let intervalMs = Int(configuration.progressPollingInterval * 1000)
             html = html.replacingOccurrences(of: "{{PROGRESS_INTERVAL_MS}}", with: String(intervalMs))
 
-            webView.loadHTMLString(html, baseURL: URL(string: "https://localhost")!)
+            webView.loadHTMLString(html, baseURL: URL(string: "https://www.youtube.com/")!)
         }
 
         func execute(_ command: YouTubePlayerCommand) {
@@ -186,7 +186,7 @@ struct YouTubePlayerWebView: NSViewRepresentable {
             let intervalMs = Int(configuration.progressPollingInterval * 1000)
             html = html.replacingOccurrences(of: "{{PROGRESS_INTERVAL_MS}}", with: String(intervalMs))
 
-            webView.loadHTMLString(html, baseURL: URL(string: "https://localhost")!)
+            webView.loadHTMLString(html, baseURL: URL(string: "https://www.youtube.com/")!)
         }
 
         func execute(_ command: YouTubePlayerCommand) {

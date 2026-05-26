@@ -118,8 +118,13 @@ enum BridgeMessage: Equatable {
             self = .ended
 
         case "error":
+            let code = dictionary["code"] as? Int
             let message = dictionary["message"] as? String ?? "Unknown player error"
-            self = .error(message)
+            if let code {
+                self = .error("\(message) (code \(code))")
+            } else {
+                self = .error(message)
+            }
 
         default:
             return nil

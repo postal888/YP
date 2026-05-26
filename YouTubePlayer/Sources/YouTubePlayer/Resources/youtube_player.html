@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <style>
     html, body {
@@ -17,6 +18,7 @@
       height: 100%;
     }
   </style>
+  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
   <div id="player"></div>
@@ -26,6 +28,7 @@
     var progressIntervalMs = {{PROGRESS_INTERVAL_MS}};
     var apiReady = false;
     var pendingConfig = null;
+    var youtubeOrigin = 'https://www.youtube.com';
 
     function post(event, payload) {
       var message = Object.assign({ event: event }, payload || {});
@@ -54,6 +57,17 @@
       }, progressIntervalMs);
     }
 
+    function youtubeErrorMessage(code) {
+      switch (code) {
+        case 2: return 'Invalid parameter (code 2)';
+        case 5: return 'HTML5 player error (code 5)';
+        case 100: return 'Video not found or private (code 100)';
+        case 101: return 'Embedding disabled by owner (code 101)';
+        case 150: return 'Embedding disabled by owner (code 150)';
+        default: return 'YouTube error code ' + code;
+      }
+    }
+
     function onYouTubeIframeAPIReady() {
       apiReady = true;
       if (pendingConfig) {
@@ -69,20 +83,29 @@
 
       clearProgressTimer();
 
+      var startParam = Math.floor(config.startTime || 0);
+      var playerVars = {
+        autoplay: config.autoplay ? 1 : 0,
+        controls: config.showControls ? 1 : 0,
+        fs: config.allowFullscreen ? 1 : 0,
+        playsinline: config.playsInline ? 1 : 0,
+        rel: 0,
+        modestbranding: 1,
+        enablejsapi: 1,
+        origin: youtubeOrigin,
+        widget_referrer: youtubeOrigin
+      };
+
+      if (startParam > 0) {
+        playerVars.start = startParam;
+      }
+
       player = new YT.Player('player', {
+        host: 'https://www.youtube-nocookie.com',
         height: '100%',
         width: '100%',
         videoId: config.videoId,
-        playerVars: {
-          autoplay: config.autoplay ? 1 : 0,
-          controls: config.showControls ? 1 : 0,
-          fs: config.allowFullscreen ? 1 : 0,
-          playsinline: config.playsInline ? 1 : 0,
-          rel: 0,
-          modestbranding: 1,
-          start: Math.floor(config.startTime || 0),
-          origin: window.location.origin
-        },
+        playerVars: playerVars,
         events: {
           onReady: function () {
             post('ready');
@@ -98,7 +121,10 @@
             }
           },
           onError: function (event) {
-            post('error', { message: 'YouTube error code ' + event.data });
+            post('error', {
+              message: youtubeErrorMessage(event.data),
+              code: event.data
+            });
           }
         }
       });
@@ -140,6 +166,5 @@
       }
     };
   </script>
-  <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
