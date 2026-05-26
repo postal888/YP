@@ -1,14 +1,30 @@
-import Combine
 import Foundation
+import Combine
 import YouTubePlayerKit
 
 @MainActor
 final class YouTubePlayerHolder: ObservableObject {
-    let player: YouTubePlayer
+    /// Плеер создаётся с placeholder source, потому что YouTubePlayerKit
+    /// не позволяет инициализировать YouTubePlayer без source.
+    private(set) var player: YouTubePlayer = YouTubePlayer(
+        source: .video(id: "dQw4w9WgXcQ"),
+        parameters: .init(
+            autoPlay: false,
+            showCaptions: true,
+            showControls: true,
+            language: "pt",
+            showFullscreenButton: true,
+            restrictRelatedVideosToSameChannel: true
+        ),
+        configuration: .init(
+            fullscreenMode: .system,
+            allowsInlineMediaPlayback: true,
+            allowsPictureInPictureMediaPlayback: true
+        )
+    )
 
     private var cancellables = Set<AnyCancellable>()
     private var timeTimer: Timer?
-    private var lastTimeReported: Double = -1
 
     private var onProgress: ((Double, Double) -> Void)?
     private var onState: ((String) -> Void)?
@@ -16,16 +32,7 @@ final class YouTubePlayerHolder: ObservableObject {
     private var onError: ((String) -> Void)?
     private var onDebug: ((String) -> Void)?
 
-    init() {
-        player = YouTubePlayer(
-            parameters: .init(showControls: true),
-            configuration: .init(
-                fullscreenMode: .system,
-                allowsInlineMediaPlayback: true,
-                allowsPictureInPictureMediaPlayback: true
-            )
-        )
-    }
+    init() {}
 
     func configure(
         videoID: String,
@@ -42,120 +49,107 @@ final class YouTubePlayerHolder: ObservableObject {
         self.onError = onError
         self.onDebug = onDebug
 
-        cancellables.removeAll()
-        subscribeToPlayer()
+        subscribeToState()
+        subscribeToPlaybackState()
+        startTimer()
+
         load(videoID: videoID, captionLanguage: captionLanguage)
-        startTimeReporting()
     }
 
     func load(videoID: String, captionLanguage: String) {
-        onDebug?("Loading videoID=\(videoID), lang=\(captionLanguage)")
-
-        player.source = .video(id: videoID)
         var parameters = player.parameters
-        parameters.autoPlay = false
         parameters.captionLanguage = captionLanguage
         parameters.language = captionLanguage
-        parameters.showCaptions = true
-        parameters.showControls = true
-        parameters.showFullscreenButton = true
-        parameters.restrictRelatedVideosToSameChannel = true
         player.parameters = parameters
+
+        Task { @MainActor in
+            do {
+                try await player.load(source: .video(id: videoID))
+                self.onDebug?("loaded videoID=\(videoID), lang=\(captionLanguage)")
+            } catch {
+                self.onError?("load failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     func play() {
-        Task {
-            do {
-                try await player.play()
-            } catch {
-                onError?("Play failed: \(error.localizedDescription)")
-            }
+        Task { @MainActor in
+            try? await player.play()
         }
     }
 
     func pause() {
-        Task {
-            do {
-                try await player.pause()
-            } catch {
-                onError?("Pause failed: \(error.localizedDescription)")
-            }
+        Task { @MainActor in
+            try? await player.pause()
         }
     }
 
     func seek(to seconds: Double) {
-        Task {
-            do {
-                try await player.seek(
-                    to: Measurement(value: seconds, unit: .seconds),
-                    allowSeekAhead: true
-                )
-            } catch {
-                onError?("Seek failed: \(error.localizedDescription)")
-            }
+        Task { @MainActor in
+            try? await player.seek(
+                to: Measurement(value: seconds, unit: UnitDuration.seconds),
+                allowSeekAhead: true
+            )
         }
     }
 
-    private func subscribeToPlayer() {
+    private func subscribeToState() {
         player.statePublisher
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
-                guard let self else { return }
+                guard let self = self else { return }
                 switch state {
                 case .idle:
-                    onState?("Загрузка")
+                    self.onState?("Ожидание")
                 case .ready:
-                    onState?("Готов")
-                    onDebug?("Player ready")
-                case .error(let error):
-                    let message = String(describing: error)
-                    onState?("Ошибка")
-                    onError?(message)
+                    self.onState?("Готов")
+                    self.onDebug?("player ready")
+                case .error(let err):
+                    let msg = String(describing: err)
+                    self.onError?(msg)
+                    self.onState?("Ошибка")
                 }
             }
             .store(in: &cancellables)
+    }
 
+    private func subscribeToPlaybackState() {
         player.playbackStatePublisher
-            .sink { [weak self] playbackState in
-                guard let self else { return }
-                onState?(Self.statusText(for: playbackState))
-                if playbackState == .ended {
-                    onEnded?()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] pb in
+                guard let self = self else { return }
+                switch pb {
+                case .unstarted:
+                    self.onState?("Ожидание")
+                case .ended:
+                    self.onState?("Завершено")
+                    self.onEnded?()
+                case .playing:
+                    self.onState?("Воспроизведение")
+                case .paused:
+                    self.onState?("Пауза")
+                case .buffering:
+                    self.onState?("Буферизация")
+                case .cued:
+                    self.onState?("Готов")
                 }
             }
             .store(in: &cancellables)
     }
 
-    private func startTimeReporting() {
+    private func startTimer() {
         timeTimer?.invalidate()
-        timeTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            guard let self else { return }
+        timeTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
             Task { @MainActor in
-                do {
-                    let current = try await self.player.getCurrentTime()
-                    let duration = try await self.player.getDuration()
-                    let seconds = current.converted(to: .seconds).value
-                    let total = duration.converted(to: .seconds).value
-
-                    if abs(seconds - self.lastTimeReported) > 0.05 {
-                        self.lastTimeReported = seconds
-                        self.onProgress?(seconds, total)
-                    }
-                } catch {
-                    // Ignore transient API errors during transitions.
-                }
+                let cur = (try? await self.player.getCurrentTime().converted(to: .seconds).value) ?? 0
+                let dur = (try? await self.player.getDuration().converted(to: .seconds).value) ?? 0
+                self.onProgress?(cur, dur)
             }
         }
     }
 
-    private static func statusText(for playbackState: YouTubePlayer.PlaybackState) -> String {
-        switch playbackState {
-        case .unstarted: return "Ожидание"
-        case .ended: return "Завершено"
-        case .playing: return "Воспроизведение"
-        case .paused: return "Пауза"
-        case .buffering: return "Буферизация"
-        case .cued: return "Готов"
-        @unknown default: return "Ожидание"
-        }
+    deinit {
+        timeTimer?.invalidate()
     }
 }
