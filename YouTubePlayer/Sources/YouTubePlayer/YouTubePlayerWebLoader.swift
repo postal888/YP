@@ -242,6 +242,7 @@ enum YouTubePlayerWebLoader {
         """
     }
 
+    static let bridgeScriptSource = """
     (function () {
       function forward(data) {
         if (!data || typeof data !== 'object') return;
