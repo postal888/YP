@@ -1,12 +1,13 @@
 import SwiftUI
-import YouTubePlayer
+import Combine
+import YouTubePlayerKit
 
 @MainActor
 struct LessonPlayerView: View {
     let videoID: String
-    @ObservedObject var controller: YouTubePlayerController
     @ObservedObject var errorLog: AppErrorLog
 
+    @StateObject private var playerHolder = YouTubePlayerHolder()
     @State private var watchedSeconds: Double = 0
     @State private var lessonCompleted = false
     @State private var subtitleLines: [YouTubeSubtitleLine] = []
@@ -15,36 +16,57 @@ struct LessonPlayerView: View {
     @State private var subtitleError: String?
     @State private var loadedTranscriptKey: String?
     @State private var lastLoggedPlayerError: String?
+    @State private var currentTime: Double = 0
+    @State private var duration: Double = 0
+    @State private var statusText: String = "Ожидание"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Тестовый урок")
                 .font(.headline)
 
-            YouTubePlayerView(
-                configuration: YouTubePlayerConfiguration(
-                    videoID: videoID,
-                    showControls: true,
-                    progressPollingInterval: 0.25,
-                    captionLanguage: selectedLanguage.rawValue
-                ),
-                controller: controller
-            )
+            YouTubePlayerView(playerHolder.player) { state in
+                switch state {
+                case .idle:
+                    ProgressView()
+                case .ready:
+                    EmptyView()
+                case .error(let error):
+                    Text("Ошибка плеера: \(String(describing: error))")
+                        .foregroundColor(.red)
+                        .padding()
+                }
+            }
             .id("\(videoID)-\(selectedLanguage.rawValue)")
             .frame(height: 220)
             .onAppear {
-                controller.onEvent = handlePlayerEvent
+                playerHolder.configure(
+                    videoID: videoID,
+                    captionLanguage: selectedLanguage.rawValue,
+                    onProgress: { time, dur in
+                        currentTime = time
+                        duration = dur
+                        watchedSeconds = max(watchedSeconds, time)
+                    },
+                    onState: { text in statusText = text },
+                    onEnded: { lessonCompleted = true },
+                    onError: { msg in logPlayerError(msg) },
+                    onDebug: { msg in errorLog.add(source: "Player", message: msg) }
+                )
+            }
+            .onChange(of: videoID) { newID in
+                playerHolder.load(videoID: newID, captionLanguage: selectedLanguage.rawValue)
+                resetWatchState()
+            }
+            .onChange(of: selectedLanguage) { newLang in
+                playerHolder.load(videoID: videoID, captionLanguage: newLang.rawValue)
             }
 
             HStack {
-                Button("Play") { controller.play() }
-                Button("Pause") { controller.pause() }
-                Button("−10s") {
-                    controller.seek(to: max(0, controller.currentTime - 10))
-                }
-                Button("+10s") {
-                    controller.seek(to: controller.currentTime + 10)
-                }
+                Button("Play") { playerHolder.play() }
+                Button("Pause") { playerHolder.pause() }
+                Button("−10s") { playerHolder.seek(to: max(0, currentTime - 10)) }
+                Button("+10s") { playerHolder.seek(to: currentTime + 10) }
             }
             .buttonStyle(.bordered)
 
@@ -58,20 +80,13 @@ struct LessonPlayerView: View {
         .task(id: transcriptKey) {
             await loadSubtitlesIfNeeded()
         }
-        .onChange(of: controller.state) { newState in
-            logPlayerStateIfNeeded(newState)
-        }
     }
 
-    private var transcriptKey: String {
-        "\(videoID):\(selectedLanguage.rawValue)"
-    }
+    private var transcriptKey: String { "\(videoID):\(selectedLanguage.rawValue)" }
 
     private var languagePicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Субтитры")
-                .font(.subheadline.weight(.semibold))
-
+            Text("Субтитры").font(.subheadline.weight(.semibold))
             Picker("Язык субтитров", selection: $selectedLanguage) {
                 ForEach(YouTubeSubtitleLanguage.allCases) { language in
                     Text(language.label).tag(language)
@@ -87,34 +102,27 @@ struct LessonPlayerView: View {
             if isLoadingSubtitles {
                 HStack(spacing: 10) {
                     ProgressView()
-                    Text("Загрузка субтитров...")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    Text("Загрузка субтитров...").font(.subheadline).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 8)
             } else if let subtitleError {
-                Text(subtitleError)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
+                Text(subtitleError).font(.subheadline).foregroundStyle(.red)
             } else if !subtitleLines.isEmpty {
                 Text("\(subtitleLines.count) строк · с устройства")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(.secondary)
 
                 YouTubeSubtitlesView(
                     lines: subtitleLines,
-                    playbackSec: controller.currentTime,
+                    playbackSec: currentTime,
                     onLineTap: { line in
-                        controller.seek(to: line.startSec)
-                        controller.play()
+                        playerHolder.seek(to: line.startSec)
+                        playerHolder.play()
                     }
                 )
                 .frame(minHeight: 220, maxHeight: 360)
             } else {
-                Text("Субтитры не загружены.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Text("Субтитры не загружены.").font(.subheadline).foregroundStyle(.secondary)
             }
         }
     }
@@ -124,8 +132,8 @@ struct LessonPlayerView: View {
             Text("Статус: \(statusText)")
             Text("Просмотрено: \(Int(watchedSeconds)) сек")
 
-            if controller.duration > 0 {
-                ProgressView(value: watchedSeconds, total: controller.duration)
+            if duration > 0 {
+                ProgressView(value: min(watchedSeconds, duration), total: duration)
             }
 
             if lessonCompleted {
@@ -136,17 +144,11 @@ struct LessonPlayerView: View {
         .font(.subheadline)
     }
 
-    private var statusText: String {
-        switch controller.state {
-        case .idle: return "Ожидание"
-        case .loading: return "Загрузка"
-        case .ready: return "Готов"
-        case .playing: return "Воспроизведение"
-        case .paused: return "Пауза"
-        case .buffering: return "Буферизация"
-        case .ended: return "Завершено"
-        case .error: return "Ошибка"
-        }
+    private func resetWatchState() {
+        watchedSeconds = 0
+        lessonCompleted = false
+        currentTime = 0
+        duration = 0
     }
 
     @MainActor
@@ -177,31 +179,6 @@ struct LessonPlayerView: View {
         isLoadingSubtitles = false
     }
 
-    private func handlePlayerEvent(_ event: YouTubePlayerEvent) {
-        switch event {
-        case .progress(let currentTime, _):
-            watchedSeconds = max(watchedSeconds, currentTime)
-
-        case .ended:
-            lessonCompleted = true
-
-        case .error(let message):
-            logPlayerError(message)
-
-        case .debug(let message):
-            errorLog.add(source: "Player", message: message)
-
-        default:
-            break
-        }
-    }
-
-    private func logPlayerStateIfNeeded(_ state: YouTubePlayerState) {
-        if case .error(let message) = state {
-            logPlayerError(message)
-        }
-    }
-
     private func logPlayerError(_ message: String) {
         guard lastLoggedPlayerError != message else { return }
         lastLoggedPlayerError = message
@@ -212,7 +189,6 @@ struct LessonPlayerView: View {
 #Preview {
     LessonPlayerView(
         videoID: "ysz5S6PUM-U",
-        controller: YouTubePlayerController(),
         errorLog: AppErrorLog()
     )
     .padding()

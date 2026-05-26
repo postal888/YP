@@ -1,18 +1,18 @@
 import Foundation
 
-public actor YouTubeTranscriptFetcher {
-    public static let shared = YouTubeTranscriptFetcher()
+actor YouTubeTranscriptFetcher {
+    static let shared = YouTubeTranscriptFetcher()
 
     private let session: URLSession
     private let innertubeURL = URL(string: "https://www.youtube.com/youtubei/v1/player?prettyPrint=false")!
     private let innertubeAndroidVersion = "20.10.38"
     private let captionUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36,gzip(gfe)"
 
-    public init(session: URLSession = .shared) {
+    init(session: URLSession = .shared) {
         self.session = session
     }
 
-    public func fetchSubtitleLines(videoID: String, preferredLanguage: String = "pt") async throws -> [YouTubeSubtitleLine] {
+    func fetchSubtitleLines(videoID: String, preferredLanguage: String = "pt") async throws -> [YouTubeSubtitleLine] {
         let langCandidates = languageCandidates(for: preferredLanguage)
         var lastError = YouTubeTranscriptError.emptyTranscript("Субтитры недоступны.")
 
@@ -34,7 +34,7 @@ public actor YouTubeTranscriptFetcher {
         throw lastError
     }
 
-    public func fetchTranscript(videoID: String, preferredLanguage: String? = nil) async throws -> [YouTubeTranscriptSegment] {
+    func fetchTranscript(videoID: String, preferredLanguage: String? = nil) async throws -> [YouTubeTranscriptSegment] {
         var tracks = try await fetchCaptionTracksViaInnertube(videoID: videoID)
         if tracks.isEmpty {
             let html = try await fetchWatchPageHTML(videoID: videoID)

@@ -1,46 +1,33 @@
 import Foundation
 
-public struct YouTubeTranscriptSegment: Equatable, Sendable {
-    public let text: String
-    public let offset: Double
-    public let duration: Double
-
-    public init(text: String, offset: Double, duration: Double) {
-        self.text = text
-        self.offset = offset
-        self.duration = duration
-    }
+struct YouTubeTranscriptSegment: Equatable, Sendable {
+    let text: String
+    let offset: Double
+    let duration: Double
 }
 
-public struct YouTubeSubtitleLine: Identifiable, Equatable, Sendable {
-    public let id: String
-    public let text: String
-    public let startSec: Double
-    public let endSec: Double
-
-    public init(id: String, text: String, startSec: Double, endSec: Double) {
-        self.id = id
-        self.text = text
-        self.startSec = startSec
-        self.endSec = endSec
-    }
+struct YouTubeSubtitleLine: Identifiable, Equatable, Sendable {
+    let id: String
+    let text: String
+    let startSec: Double
+    let endSec: Double
 }
 
-public enum YouTubeSubtitleTone: Sendable {
+enum YouTubeSubtitleTone: Sendable {
     case future
     case current
     case spoken
 }
 
-public enum YouTubeSubtitleLanguage: String, CaseIterable, Identifiable, Sendable {
+enum YouTubeSubtitleLanguage: String, CaseIterable, Identifiable, Sendable {
     case portuguese = "pt"
     case english = "en"
     case russian = "ru"
     case spanish = "es"
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var label: String {
+    var label: String {
         switch self {
         case .portuguese: return "Português"
         case .english: return "English"
@@ -50,13 +37,13 @@ public enum YouTubeSubtitleLanguage: String, CaseIterable, Identifiable, Sendabl
     }
 }
 
-public enum YouTubeTranscriptError: LocalizedError, Sendable {
+enum YouTubeTranscriptError: LocalizedError, Sendable {
     case noCaptionTracks
     case noMatchingTrack
     case emptyTranscript(String)
     case network(String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .noCaptionTracks:
             return "У видео нет открытых субтитров."
@@ -70,14 +57,14 @@ public enum YouTubeTranscriptError: LocalizedError, Sendable {
     }
 }
 
-public func youtubeSubtitleTone(for line: YouTubeSubtitleLine, playbackSec: Double?) -> YouTubeSubtitleTone {
+func youtubeSubtitleTone(for line: YouTubeSubtitleLine, playbackSec: Double?) -> YouTubeSubtitleTone {
     guard let playbackSec else { return .future }
     if playbackSec >= line.endSec { return .spoken }
     if playbackSec >= line.startSec { return .current }
     return .future
 }
 
-public func formatSubtitleClock(_ seconds: Double) -> String {
+func formatSubtitleClock(_ seconds: Double) -> String {
     let total = max(0, Int(seconds.rounded(.down)))
     let minutes = total / 60
     let remainder = total % 60

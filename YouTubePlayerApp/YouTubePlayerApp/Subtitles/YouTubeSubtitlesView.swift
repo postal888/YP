@@ -1,14 +1,14 @@
 import SwiftUI
 
 @MainActor
-public struct YouTubeSubtitlesView: View {
-    public let lines: [YouTubeSubtitleLine]
-    public let playbackSec: Double?
-    public let onLineTap: ((YouTubeSubtitleLine) -> Void)?
+struct YouTubeSubtitlesView: View {
+    let lines: [YouTubeSubtitleLine]
+    let playbackSec: Double?
+    let onLineTap: ((YouTubeSubtitleLine) -> Void)?
 
     @State private var userScrollUntil: Date = .distantPast
 
-    public init(
+    init(
         lines: [YouTubeSubtitleLine],
         playbackSec: Double?,
         onLineTap: ((YouTubeSubtitleLine) -> Void)? = nil
@@ -18,7 +18,7 @@ public struct YouTubeSubtitlesView: View {
         self.onLineTap = onLineTap
     }
 
-    public var body: some View {
+    var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {

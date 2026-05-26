@@ -1,11 +1,9 @@
 import SwiftUI
-import YouTubePlayer
 
 @MainActor
 struct ContentView: View {
     @State private var inputURL = "https://www.youtube.com/watch?v=ysz5S6PUM-U"
     @State private var resolvedVideoID: String?
-    @StateObject private var playerController = YouTubePlayerController()
     @StateObject private var errorLog = AppErrorLog()
 
     var body: some View {
@@ -34,7 +32,6 @@ struct ContentView: View {
                         if let videoID = resolvedVideoID {
                             LessonPlayerView(
                                 videoID: videoID,
-                                controller: playerController,
                                 errorLog: errorLog
                             )
                         } else if !inputURL.isEmpty {

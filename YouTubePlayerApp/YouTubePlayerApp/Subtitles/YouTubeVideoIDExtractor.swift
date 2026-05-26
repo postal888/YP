@@ -1,8 +1,7 @@
 import Foundation
 
-/// Утилита для извлечения ID видео из разных форматов YouTube-ссылок.
-public enum YouTubeVideoIDExtractor {
-    public static func extract(from input: String) -> String? {
+enum YouTubeVideoIDExtractor {
+    static func extract(from input: String) -> String? {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmed.range(of: #"^[a-zA-Z0-9_-]{11}$"#, options: .regularExpression) != nil {
