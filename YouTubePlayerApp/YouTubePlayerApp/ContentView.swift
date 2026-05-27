@@ -5,6 +5,8 @@ struct ContentView: View {
     @StateObject private var errorLog = AppErrorLog()
     @StateObject private var vocabularyStore = VocabularyStore()
     @StateObject private var bookLibrary = BookLibraryStore()
+    @StateObject private var appSettings = AppSettings()
+    @StateObject private var learningStats = LearningStatsStore()
     @State private var selectedTab: AppTab = .home
 
     var body: some View {
@@ -15,6 +17,8 @@ struct ContentView: View {
             }
         .environmentObject(vocabularyStore)
         .environmentObject(bookLibrary)
+        .environmentObject(appSettings)
+        .environmentObject(learningStats)
         .preferredColorScheme(.dark)
         .accentColor(PortTheme.accent)
         .background(PortTheme.background.ignoresSafeArea())
@@ -39,6 +43,9 @@ struct ContentView: View {
 
         case .dictionary:
             DictionaryView()
+
+        case .account:
+            AccountTabScreen()
         }
     }
 }

@@ -4,6 +4,7 @@ import SwiftUI
 struct HomeTabScreen: View {
     @EnvironmentObject private var vocabularyStore: VocabularyStore
     @EnvironmentObject private var bookLibrary: BookLibraryStore
+    @EnvironmentObject private var learningStats: LearningStatsStore
     let onSelectTab: (AppTab) -> Void
 
     var body: some View {
@@ -48,7 +49,7 @@ struct HomeTabScreen: View {
             divider
             statBlock(value: "\(bookLibrary.books.count)", label: "книг")
             divider
-            statBlock(value: "0", label: "streak")
+            statBlock(value: "\(learningStats.streakDays)", label: "streak")
         }
         .padding(16)
         .portCard()
@@ -95,6 +96,7 @@ struct HomeTabScreen: View {
             quickCard(title: "Video", icon: "play.rectangle.fill", tab: .video)
             quickCard(title: "Словарь", icon: "character.book.closed.fill", tab: .dictionary)
             quickCard(title: "Study", icon: "square.stack.fill", tab: .study)
+            quickCard(title: "Аккаунт", icon: "person.crop.circle.fill", tab: .account)
         }
     }
 
@@ -159,6 +161,7 @@ struct HomeTabScreen_Previews: PreviewProvider {
         HomeTabScreen(onSelectTab: { _ in })
             .environmentObject(VocabularyStore())
             .environmentObject(BookLibraryStore())
+            .environmentObject(LearningStatsStore())
     }
 }
 #endif

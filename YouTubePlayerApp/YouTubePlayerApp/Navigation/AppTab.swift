@@ -6,6 +6,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     case reader
     case video
     case dictionary
+    case account
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .reader: return "Reader"
         case .video: return "Video"
         case .dictionary: return "Словарь"
+        case .account: return "Аккаунт"
         }
     }
 
@@ -26,6 +28,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .reader: return "book.fill"
         case .video: return "play.rectangle.fill"
         case .dictionary: return "character.book.closed.fill"
+        case .account: return "person.crop.circle.fill"
         }
     }
 }

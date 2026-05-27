@@ -12,6 +12,11 @@ struct WordTranslationEntry: Identifiable, Equatable {
     }
 }
 
+enum WordTranslationContext {
+    case subtitle
+    case reader
+}
+
 enum WordTranslationError: LocalizedError {
     case emptyInput
     case invalidResponse
@@ -43,24 +48,53 @@ actor WordTranslationService {
         sourceLanguage.lowercased() == "ru" ? "en" : "ru"
     }
 
-    func cachedTranslation(for sourceWord: String, sourceLanguage: String) -> String? {
-        let targetLanguage = Self.targetLanguage(for: sourceLanguage)
-        return cache[cacheKey(sourceWord, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage)]
-    }
-
     func translate(
         _ sourceWord: String,
-        sourceLanguage: String
+        sourceLanguage: String,
+        context: WordTranslationContext = .subtitle,
+        useChatGPT: Bool = false,
+        backendBaseURL: String = AppSettings.defaultBackendURL
     ) async throws -> String {
         let trimmed = sourceWord.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw WordTranslationError.emptyInput }
 
         let targetLanguage = Self.targetLanguage(for: sourceLanguage)
-        let key = cacheKey(trimmed, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage)
+        let key = cacheKey(trimmed, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage, useChatGPT: useChatGPT, context: context)
         if let cached = cache[key] {
             return cached
         }
 
+        let translated: String
+        if useChatGPT {
+            switch context {
+            case .subtitle:
+                translated = try await PortuPrepBackendService.shared.translateWord(trimmed, baseURL: backendBaseURL)
+            case .reader:
+                translated = try await PortuPrepBackendService.shared.translateBookText(trimmed, baseURL: backendBaseURL)
+            }
+        } else {
+            translated = try await translateViaMyMemory(trimmed, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage)
+        }
+
+        cache[key] = translated
+        return translated
+    }
+
+    func cachedTranslation(
+        for sourceWord: String,
+        sourceLanguage: String,
+        context: WordTranslationContext = .subtitle,
+        useChatGPT: Bool = false
+    ) -> String? {
+        let targetLanguage = Self.targetLanguage(for: sourceLanguage)
+        return cache[cacheKey(sourceWord, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage, useChatGPT: useChatGPT, context: context)]
+    }
+
+    private func translateViaMyMemory(
+        _ trimmed: String,
+        sourceLanguage: String,
+        targetLanguage: String
+    ) async throws -> String {
         guard var components = URLComponents(string: "https://api.mymemory.translated.net/get") else {
             throw WordTranslationError.network("Некорректный URL перевода.")
         }
@@ -95,11 +129,18 @@ actor WordTranslationService {
             throw WordTranslationError.invalidResponse
         }
 
-        cache[key] = cleaned
         return cleaned
     }
 
-    private func cacheKey(_ word: String, sourceLanguage: String, targetLanguage: String) -> String {
-        "\(word.lowercased())::\(sourceLanguage)->\(targetLanguage)"
+    private func cacheKey(
+        _ word: String,
+        sourceLanguage: String,
+        targetLanguage: String,
+        useChatGPT: Bool,
+        context: WordTranslationContext
+    ) -> String {
+        let backend = useChatGPT ? "gpt" : "mm"
+        let ctx = context == .subtitle ? "sub" : "book"
+        return "\(word.lowercased())::\(sourceLanguage)->\(targetLanguage)::\(backend)::\(ctx)"
     }
 }

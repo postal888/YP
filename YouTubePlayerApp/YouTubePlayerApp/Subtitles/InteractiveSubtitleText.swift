@@ -18,12 +18,16 @@ struct InteractiveSubtitleText: View {
     let onWordTranslated: (WordTranslationEntry) -> Void
     let onTranslationError: (String) -> Void
 
+    @EnvironmentObject private var appSettings: AppSettings
+
     var body: some View {
         TappableSubtitleTextRepresentable(
             text: text,
             lineID: lineID,
             sourceLanguage: sourceLanguage,
             translatedKeys: translatedKeys,
+            useChatGPT: appSettings.useChatGPTTranslation,
+            backendBaseURL: appSettings.normalizedBackendURL,
             activeWord: $activeWord,
             translationPreview: $translationPreview,
             isTranslating: $isTranslating,
@@ -39,6 +43,8 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
     let lineID: String
     let sourceLanguage: String
     let translatedKeys: Set<String>
+    let useChatGPT: Bool
+    let backendBaseURL: String
     @Binding var activeWord: ActiveSubtitleWord?
     @Binding var translationPreview: String?
     @Binding var isTranslating: Bool
@@ -169,7 +175,9 @@ private extension TappableSubtitleTextRepresentable {
     func translate(word: ActiveSubtitleWord, persistRecent: Bool) async {
         if let cached = await WordTranslationService.shared.cachedTranslation(
             for: word.lookupKey,
-            sourceLanguage: sourceLanguage
+            sourceLanguage: sourceLanguage,
+            context: .subtitle,
+            useChatGPT: useChatGPT
         ) {
             translationPreview = "\(word.display) — \(cached)"
             if persistRecent {
@@ -184,7 +192,10 @@ private extension TappableSubtitleTextRepresentable {
         do {
             let translated = try await WordTranslationService.shared.translate(
                 word.lookupKey,
-                sourceLanguage: sourceLanguage
+                sourceLanguage: sourceLanguage,
+                context: .subtitle,
+                useChatGPT: useChatGPT,
+                backendBaseURL: backendBaseURL
             )
             translationPreview = "\(word.display) — \(translated)"
             if persistRecent {

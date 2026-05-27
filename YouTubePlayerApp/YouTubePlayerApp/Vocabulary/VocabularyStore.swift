@@ -24,7 +24,8 @@ final class VocabularyStore: ObservableObject {
         source: String,
         translation: String,
         sourceLanguage: String,
-        bookTitle: String? = nil
+        bookTitle: String? = nil,
+        example: String? = nil
     ) -> VocabularyCard {
         let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedTranslation = translation.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -37,6 +38,7 @@ final class VocabularyStore: ObservableObject {
                 translation: trimmedTranslation,
                 sourceLanguage: sourceLanguage,
                 bookTitle: bookTitle ?? cards[index].bookTitle,
+                example: example ?? cards[index].example,
                 createdAt: cards[index].createdAt
             )
             cards[index] = updated
@@ -48,11 +50,32 @@ final class VocabularyStore: ObservableObject {
             source: trimmedSource,
             translation: trimmedTranslation,
             sourceLanguage: sourceLanguage,
-            bookTitle: bookTitle
+            bookTitle: bookTitle,
+            example: example
         )
         cards.insert(card, at: 0)
         persist()
         return card
+    }
+
+    func update(
+        _ card: VocabularyCard,
+        source: String,
+        translation: String,
+        example: String?
+    ) {
+        guard let index = cards.firstIndex(where: { $0.id == card.id }) else { return }
+        let updated = VocabularyCard(
+            id: card.id,
+            source: source.trimmingCharacters(in: .whitespacesAndNewlines),
+            translation: translation.trimmingCharacters(in: .whitespacesAndNewlines),
+            sourceLanguage: card.sourceLanguage,
+            bookTitle: card.bookTitle,
+            example: example,
+            createdAt: card.createdAt
+        )
+        cards[index] = updated
+        persist()
     }
 
     func remove(_ card: VocabularyCard) {

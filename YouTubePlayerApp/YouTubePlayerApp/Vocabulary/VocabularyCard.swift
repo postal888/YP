@@ -6,6 +6,7 @@ struct VocabularyCard: Identifiable, Codable, Equatable {
     let translation: String
     let sourceLanguage: String
     let bookTitle: String?
+    let example: String?
     let createdAt: Date
 
     init(
@@ -14,6 +15,7 @@ struct VocabularyCard: Identifiable, Codable, Equatable {
         translation: String,
         sourceLanguage: String,
         bookTitle: String? = nil,
+        example: String? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -21,6 +23,7 @@ struct VocabularyCard: Identifiable, Codable, Equatable {
         self.translation = translation
         self.sourceLanguage = sourceLanguage
         self.bookTitle = bookTitle
+        self.example = example
         self.createdAt = createdAt
     }
 

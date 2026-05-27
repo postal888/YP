@@ -3,7 +3,9 @@ import SwiftUI
 @MainActor
 struct StudyTabScreen: View {
     @EnvironmentObject private var vocabularyStore: VocabularyStore
+    @EnvironmentObject private var learningStats: LearningStatsStore
 
+    @State private var studyMode: StudyMode = .flashcards
     @State private var currentIndex = 0
     @State private var isRevealed = false
 
@@ -21,7 +23,15 @@ struct StudyTabScreen: View {
             VStack(alignment: .leading, spacing: 20) {
                 header
 
-                if let card = currentCard {
+                Picker("Режим", selection: $studyMode) {
+                    Text("Карточки").tag(StudyMode.flashcards)
+                    Text("Квиз").tag(StudyMode.quiz)
+                }
+                .pickerStyle(.segmented)
+
+                if studyMode == .quiz {
+                    QuizPanelView()
+                } else if let card = currentCard {
                     studyCard(card)
                     controls
                 } else {
@@ -33,6 +43,15 @@ struct StudyTabScreen: View {
             .padding(.bottom, 24)
         }
         .background(PortTheme.background.ignoresSafeArea())
+        .onAppear {
+            learningStats.beginStudySession()
+        }
+        .onDisappear {
+            if studyMode == .flashcards, currentIndex > 0 {
+                learningStats.recordReviewSession(cardsReviewed: currentIndex + 1)
+            }
+            learningStats.endStudySession()
+        }
     }
 
     private var header: some View {
@@ -40,7 +59,7 @@ struct StudyTabScreen: View {
             Text("Study")
                 .font(.title2.bold())
                 .foregroundStyle(PortTheme.heading)
-            Text("Повторение карточек из словаря")
+            Text("Повторение карточек и квиз из словаря")
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
         }
@@ -62,6 +81,12 @@ struct StudyTabScreen: View {
                 Text(isRevealed ? card.source : "Нажмите, чтобы показать перевод")
                     .font(.subheadline)
                     .foregroundStyle(PortTheme.textMuted)
+
+                if let example = card.example, !example.isEmpty {
+                    Text(example)
+                        .font(.caption)
+                        .foregroundStyle(PortTheme.textSubtle)
+                }
 
                 if let bookTitle = card.bookTitle {
                     Text(bookTitle)
@@ -118,6 +143,7 @@ struct StudyTabScreen: View {
         withAnimation(.easeInOut(duration: 0.2)) {
             if delta > 0, currentIndex >= cards.count - 1 {
                 currentIndex = 0
+                learningStats.recordReviewSession(cardsReviewed: cards.count)
             } else {
                 currentIndex = min(max(currentIndex + delta, 0), cards.count - 1)
             }
@@ -126,11 +152,17 @@ struct StudyTabScreen: View {
     }
 }
 
+private enum StudyMode {
+    case flashcards
+    case quiz
+}
+
 #if DEBUG
 struct StudyTabScreen_Previews: PreviewProvider {
     static var previews: some View {
         StudyTabScreen()
             .environmentObject(VocabularyStore())
+            .environmentObject(LearningStatsStore())
     }
 }
 #endif

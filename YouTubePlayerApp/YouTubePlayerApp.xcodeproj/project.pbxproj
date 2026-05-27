@@ -44,6 +44,13 @@
 		2A0000010000000000000062 /* PortBottomNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000061 /* PortBottomNav.swift */; };
 		2A0000010000000000000064 /* HomeTabScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000063 /* HomeTabScreen.swift */; };
 		2A0000010000000000000066 /* StudyTabScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000065 /* StudyTabScreen.swift */; };
+		2A000001000000000000006A /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000069 /* AppSettings.swift */; };
+		2A000001000000000000006C /* PortuPrepBackendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000006B /* PortuPrepBackendService.swift */; };
+		2A000001000000000000006E /* WordTTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000006D /* WordTTSService.swift */; };
+		2A0000010000000000000070 /* LearningStatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000006F /* LearningStatsStore.swift */; };
+		2A0000010000000000000072 /* AccountTabScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000071 /* AccountTabScreen.swift */; };
+		2A0000010000000000000074 /* QuizPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000073 /* QuizPanelView.swift */; };
+		2A0000010000000000000076 /* VocabularyCardEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000075 /* VocabularyCardEditSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -84,6 +91,13 @@
 		2A0000010000000000000061 /* PortBottomNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortBottomNav.swift; sourceTree = "<group>"; };
 		2A0000010000000000000063 /* HomeTabScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeTabScreen.swift; sourceTree = "<group>"; };
 		2A0000010000000000000065 /* StudyTabScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTabScreen.swift; sourceTree = "<group>"; };
+		2A0000010000000000000069 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		2A000001000000000000006B /* PortuPrepBackendService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortuPrepBackendService.swift; sourceTree = "<group>"; };
+		2A000001000000000000006D /* WordTTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordTTSService.swift; sourceTree = "<group>"; };
+		2A000001000000000000006F /* LearningStatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningStatsStore.swift; sourceTree = "<group>"; };
+		2A0000010000000000000071 /* AccountTabScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountTabScreen.swift; sourceTree = "<group>"; };
+		2A0000010000000000000073 /* QuizPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuizPanelView.swift; sourceTree = "<group>"; };
+		2A0000010000000000000075 /* VocabularyCardEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyCardEditSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -121,6 +135,10 @@
 				2A0000010000000000000005 /* ContentView.swift */,
 				2A0000010000000000000053 /* YouTube */,
 				2A0000010000000000000067 /* Navigation */,
+				2A000001000000000000007A /* Account */,
+				2A0000010000000000000077 /* Settings */,
+				2A0000010000000000000078 /* Services */,
+				2A0000010000000000000079 /* Stats */,
 				2A0000010000000000000041 /* Home */,
 				2A0000010000000000000068 /* Study */,
 				2A0000010000000000000054 /* Reader */,
@@ -151,8 +169,42 @@
 			isa = PBXGroup;
 			children = (
 				2A0000010000000000000065 /* StudyTabScreen.swift */,
+				2A0000010000000000000073 /* QuizPanelView.swift */,
 			);
 			path = Study;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000077 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				2A0000010000000000000069 /* AppSettings.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000078 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				2A000001000000000000006B /* PortuPrepBackendService.swift */,
+				2A000001000000000000006D /* WordTTSService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000079 /* Stats */ = {
+			isa = PBXGroup;
+			children = (
+				2A000001000000000000006F /* LearningStatsStore.swift */,
+			);
+			path = Stats;
+			sourceTree = "<group>";
+		};
+		2A000001000000000000007A /* Account */ = {
+			isa = PBXGroup;
+			children = (
+				2A0000010000000000000071 /* AccountTabScreen.swift */,
+			);
+			path = Account;
 			sourceTree = "<group>";
 		};
 		2A0000010000000000000053 /* YouTube */ = {
@@ -179,6 +231,7 @@
 			isa = PBXGroup;
 			children = (
 				2A000001000000000000004F /* DictionaryView.swift */,
+				2A0000010000000000000075 /* VocabularyCardEditSheet.swift */,
 			);
 			path = Dictionary;
 			sourceTree = "<group>";
@@ -346,6 +399,13 @@
 				2A0000010000000000000062 /* PortBottomNav.swift in Sources */,
 				2A0000010000000000000064 /* HomeTabScreen.swift in Sources */,
 				2A0000010000000000000066 /* StudyTabScreen.swift in Sources */,
+				2A000001000000000000006A /* AppSettings.swift in Sources */,
+				2A000001000000000000006C /* PortuPrepBackendService.swift in Sources */,
+				2A000001000000000000006E /* WordTTSService.swift in Sources */,
+				2A0000010000000000000070 /* LearningStatsStore.swift in Sources */,
+				2A0000010000000000000072 /* AccountTabScreen.swift in Sources */,
+				2A0000010000000000000074 /* QuizPanelView.swift in Sources */,
+				2A0000010000000000000076 /* VocabularyCardEditSheet.swift in Sources */,
 				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
 				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
 			);

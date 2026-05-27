@@ -6,6 +6,7 @@ struct PDFReaderScreen: View {
     let book: ImportedBook
     @EnvironmentObject private var vocabularyStore: VocabularyStore
     @EnvironmentObject private var bookLibrary: BookLibraryStore
+    @EnvironmentObject private var appSettings: AppSettings
     @Environment(\.presentationMode) private var presentationMode
 
     @State private var document: PDFDocument?
@@ -192,7 +193,10 @@ struct PDFReaderScreen: View {
         do {
             let translated = try await WordTranslationService.shared.translate(
                 word.lookupKey,
-                sourceLanguage: sourceLanguage.rawValue
+                sourceLanguage: sourceLanguage.rawValue,
+                context: .reader,
+                useChatGPT: appSettings.useChatGPTTranslation,
+                backendBaseURL: appSettings.normalizedBackendURL
             )
             translationText = "\(word.display) — \(translated)"
         } catch {
