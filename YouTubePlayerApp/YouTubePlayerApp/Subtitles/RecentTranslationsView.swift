@@ -2,7 +2,20 @@ import SwiftUI
 
 struct RecentTranslationsView: View {
     let entries: [WordTranslationEntry]
+    let sourceLanguage: String
     let onClear: () -> Void
+
+    @EnvironmentObject private var vocabularyStore: VocabularyStore
+
+    init(
+        entries: [WordTranslationEntry],
+        sourceLanguage: String = "pt",
+        onClear: @escaping () -> Void
+    ) {
+        self.entries = entries
+        self.sourceLanguage = sourceLanguage
+        self.onClear = onClear
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -23,23 +36,54 @@ struct RecentTranslationsView: View {
                     .font(.caption)
                     .foregroundStyle(PortTheme.textMuted)
             } else {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     ForEach(entries.prefix(8)) { entry in
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Text(entry.source)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(PortTheme.heading)
-                            Text("—")
-                                .foregroundStyle(PortTheme.textMuted)
-                            Text(entry.translation)
-                                .font(.subheadline)
-                                .foregroundStyle(PortTheme.textMuted)
-                        }
+                        row(for: entry)
                     }
                 }
             }
         }
         .padding(12)
         .portCard()
+    }
+
+    private func row(for entry: WordTranslationEntry) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(entry.source)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(PortTheme.heading)
+                    Text("—")
+                        .foregroundStyle(PortTheme.textMuted)
+                    Text(entry.translation)
+                        .font(.subheadline)
+                        .foregroundStyle(PortTheme.textMuted)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            if vocabularyStore.contains(source: entry.source) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(PortTheme.accent)
+            } else {
+                Button {
+                    vocabularyStore.add(
+                        source: entry.source,
+                        translation: entry.translation,
+                        sourceLanguage: sourceLanguage,
+                        bookTitle: "YouTube"
+                    )
+                } label: {
+                    Image(systemName: "plus.circle")
+                        .font(.body)
+                        .foregroundStyle(PortTheme.accent)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Добавить в словарь")
+            }
+        }
     }
 }

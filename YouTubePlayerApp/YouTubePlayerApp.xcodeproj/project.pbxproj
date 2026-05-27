@@ -29,6 +29,15 @@
 		2A000001000000000000003C /* PortSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000003B /* PortSearchBar.swift */; };
 		2A000001000000000000003E /* YouTubeVideoCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000003D /* YouTubeVideoCard.swift */; };
 		2A0000010000000000000040 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000003F /* HomeView.swift */; };
+		2A0000010000000000000058 /* VocabularyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000057 /* VocabularyCard.swift */; };
+		2A000001000000000000005A /* VocabularyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000059 /* VocabularyStore.swift */; };
+		2A0000010000000000000046 /* BookLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000045 /* BookLibraryStore.swift */; };
+		2A0000010000000000000048 /* PDFDocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000047 /* PDFDocumentPicker.swift */; };
+		2A000001000000000000004A /* PDFKitReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000049 /* PDFKitReaderView.swift */; };
+		2A000001000000000000004C /* PDFReaderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000004B /* PDFReaderScreen.swift */; };
+		2A000001000000000000004E /* BooksLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000004D /* BooksLibraryView.swift */; };
+		2A0000010000000000000050 /* DictionaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000004F /* DictionaryView.swift */; };
+		2A0000010000000000000052 /* YouTubeRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000051 /* YouTubeRootView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +63,15 @@
 		2A000001000000000000003B /* PortSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortSearchBar.swift; sourceTree = "<group>"; };
 		2A000001000000000000003D /* YouTubeVideoCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeVideoCard.swift; sourceTree = "<group>"; };
 		2A000001000000000000003F /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		2A0000010000000000000057 /* VocabularyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyCard.swift; sourceTree = "<group>"; };
+		2A0000010000000000000059 /* VocabularyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyStore.swift; sourceTree = "<group>"; };
+		2A0000010000000000000045 /* BookLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookLibraryStore.swift; sourceTree = "<group>"; };
+		2A0000010000000000000047 /* PDFDocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFDocumentPicker.swift; sourceTree = "<group>"; };
+		2A0000010000000000000049 /* PDFKitReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFKitReaderView.swift; sourceTree = "<group>"; };
+		2A000001000000000000004B /* PDFReaderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReaderScreen.swift; sourceTree = "<group>"; };
+		2A000001000000000000004D /* BooksLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BooksLibraryView.swift; sourceTree = "<group>"; };
+		2A000001000000000000004F /* DictionaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryView.swift; sourceTree = "<group>"; };
+		2A0000010000000000000051 /* YouTubeRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeRootView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,7 +107,11 @@
 			children = (
 				2A0000010000000000000004 /* YouTubePlayerApp.swift */,
 				2A0000010000000000000005 /* ContentView.swift */,
+				2A0000010000000000000053 /* YouTube */,
 				2A0000010000000000000041 /* Home */,
+				2A0000010000000000000054 /* Reader */,
+				2A0000010000000000000055 /* Dictionary */,
+				2A0000010000000000000056 /* Vocabulary */,
 				2A0000010000000000000006 /* LessonPlayerView.swift */,
 				2A000001000000000000002B /* YouTubePlayerHolder.swift */,
 				2A0000010000000000000042 /* Search */,
@@ -100,6 +122,43 @@
 				2A0000010000000000000007 /* Assets.xcassets */,
 			);
 			path = YouTubePlayerApp;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000053 /* YouTube */ = {
+			isa = PBXGroup;
+			children = (
+				2A0000010000000000000051 /* YouTubeRootView.swift */,
+			);
+			path = YouTube;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000054 /* Reader */ = {
+			isa = PBXGroup;
+			children = (
+				2A000001000000000000004D /* BooksLibraryView.swift */,
+				2A000001000000000000004B /* PDFReaderScreen.swift */,
+				2A0000010000000000000049 /* PDFKitReaderView.swift */,
+				2A0000010000000000000047 /* PDFDocumentPicker.swift */,
+				2A0000010000000000000045 /* BookLibraryStore.swift */,
+			);
+			path = Reader;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000055 /* Dictionary */ = {
+			isa = PBXGroup;
+			children = (
+				2A000001000000000000004F /* DictionaryView.swift */,
+			);
+			path = Dictionary;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000056 /* Vocabulary */ = {
+			isa = PBXGroup;
+			children = (
+				2A0000010000000000000057 /* VocabularyCard.swift */,
+				2A0000010000000000000059 /* VocabularyStore.swift */,
+			);
+			path = Vocabulary;
 			sourceTree = "<group>";
 		};
 		2A0000010000000000000041 /* Home */ = {
@@ -238,6 +297,15 @@
 				2A000001000000000000003C /* PortSearchBar.swift in Sources */,
 				2A000001000000000000003E /* YouTubeVideoCard.swift in Sources */,
 				2A0000010000000000000040 /* HomeView.swift in Sources */,
+				2A0000010000000000000058 /* VocabularyCard.swift in Sources */,
+				2A000001000000000000005A /* VocabularyStore.swift in Sources */,
+				2A0000010000000000000046 /* BookLibraryStore.swift in Sources */,
+				2A0000010000000000000048 /* PDFDocumentPicker.swift in Sources */,
+				2A000001000000000000004A /* PDFKitReaderView.swift in Sources */,
+				2A000001000000000000004C /* PDFReaderScreen.swift in Sources */,
+				2A000001000000000000004E /* BooksLibraryView.swift in Sources */,
+				2A0000010000000000000050 /* DictionaryView.swift in Sources */,
+				2A0000010000000000000052 /* YouTubeRootView.swift in Sources */,
 				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
 				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
 			);

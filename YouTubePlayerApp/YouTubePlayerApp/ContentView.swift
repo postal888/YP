@@ -3,52 +3,30 @@ import SwiftUI
 @MainActor
 struct ContentView: View {
     @StateObject private var errorLog = AppErrorLog()
-    @State private var selectedVideoID: String?
+    @StateObject private var vocabularyStore = VocabularyStore()
+    @StateObject private var bookLibrary = BookLibraryStore()
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                ZStack {
-                    HomeView(errorLog: errorLog) { videoID in
-                        selectedVideoID = videoID
-                    }
-
-                    NavigationLink(
-                        destination: playerDestination,
-                        tag: "player",
-                        selection: Binding(
-                            get: { selectedVideoID == nil ? nil : "player" },
-                            set: { if $0 == nil { selectedVideoID = nil } }
-                        )
-                    ) {
-                        EmptyView()
-                    }
-                    .hidden()
+        TabView {
+            YouTubeRootView(errorLog: errorLog)
+                .tabItem {
+                    Label("YouTube", systemImage: "play.rectangle.fill")
                 }
 
-                if selectedVideoID == nil {
-                    ErrorLogPanelView(log: errorLog)
+            BooksLibraryView()
+                .tabItem {
+                    Label("Книги", systemImage: "book.fill")
                 }
-            }
-            .navigationBarHidden(true)
-            .background(PortTheme.background.ignoresSafeArea())
+
+            DictionaryView()
+                .tabItem {
+                    Label("Словарь", systemImage: "rectangle.stack.fill")
+                }
         }
-        .navigationViewStyle(.stack)
+        .environmentObject(vocabularyStore)
+        .environmentObject(bookLibrary)
         .preferredColorScheme(.dark)
         .accentColor(PortTheme.accent)
-    }
-
-    @ViewBuilder
-    private var playerDestination: some View {
-        if let videoID = selectedVideoID {
-            LessonPlayerView(
-                videoID: videoID,
-                errorLog: errorLog,
-                onClose: { selectedVideoID = nil }
-            )
-        } else {
-            EmptyView()
-        }
     }
 }
 

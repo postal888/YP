@@ -139,7 +139,7 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
             in characterRange: NSRange,
             interaction: UITextItemInteraction
         ) -> Bool {
-            handleLink(URL, interaction: interaction, persistRecent: interaction == .invoke)
+            handleLink(URL, interaction: interaction, persistRecent: interaction == .invokeDefaultAction)
             return false
         }
 
