@@ -3,6 +3,8 @@ import SwiftUI
 struct RecentTranslationsView: View {
     let entries: [WordTranslationEntry]
     let sourceLanguage: String
+    let folderKey: String?
+    let folderTitle: String?
     let onClear: () -> Void
 
     @EnvironmentObject private var vocabularyStore: VocabularyStore
@@ -10,10 +12,14 @@ struct RecentTranslationsView: View {
     init(
         entries: [WordTranslationEntry],
         sourceLanguage: String = "pt",
+        folderKey: String? = nil,
+        folderTitle: String? = nil,
         onClear: @escaping () -> Void
     ) {
         self.entries = entries
         self.sourceLanguage = sourceLanguage
+        self.folderKey = folderKey
+        self.folderTitle = folderTitle
         self.onClear = onClear
     }
 
@@ -74,7 +80,9 @@ struct RecentTranslationsView: View {
                         source: entry.source,
                         translation: entry.translation,
                         sourceLanguage: sourceLanguage,
-                        bookTitle: "YouTube"
+                        bookTitle: folderTitle,
+                        folderKey: folderKey,
+                        folderTitle: folderTitle
                     )
                 } label: {
                     Image(systemName: "plus.circle.fill")

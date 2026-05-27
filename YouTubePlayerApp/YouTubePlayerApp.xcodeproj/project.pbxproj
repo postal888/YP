@@ -52,6 +52,9 @@
 		2A0000010000000000000074 /* QuizPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000073 /* QuizPanelView.swift */; };
 		2A0000010000000000000076 /* VocabularyCardEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000075 /* VocabularyCardEditSheet.swift */; };
 		2A0000010000000000000078 /* YouTubeSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000077 /* YouTubeSessionStore.swift */; };
+		2A0000010000000000000079 /* VocabularyFolderKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000007A /* VocabularyFolderKey.swift */; };
+		2A000001000000000000007D /* VocabularyFolderRenameSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000007C /* VocabularyFolderRenameSheet.swift */; };
+		2A000001000000000000007F /* YouTubeVideoMetadataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000007E /* YouTubeVideoMetadataService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -100,6 +103,9 @@
 		2A0000010000000000000073 /* QuizPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuizPanelView.swift; sourceTree = "<group>"; };
 		2A0000010000000000000075 /* VocabularyCardEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyCardEditSheet.swift; sourceTree = "<group>"; };
 		2A0000010000000000000077 /* YouTubeSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSessionStore.swift; sourceTree = "<group>"; };
+		2A000001000000000000007A /* VocabularyFolderKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyFolderKey.swift; sourceTree = "<group>"; };
+		2A000001000000000000007C /* VocabularyFolderRenameSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyFolderRenameSheet.swift; sourceTree = "<group>"; };
+		2A000001000000000000007E /* YouTubeVideoMetadataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeVideoMetadataService.swift; sourceTree = "<group>"; };
 		2A000001000000000000007B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -216,6 +222,7 @@
 			children = (
 				2A0000010000000000000051 /* YouTubeRootView.swift */,
 				2A0000010000000000000077 /* YouTubeSessionStore.swift */,
+				2A000001000000000000007E /* YouTubeVideoMetadataService.swift */,
 			);
 			path = YouTube;
 			sourceTree = "<group>";
@@ -237,6 +244,7 @@
 			children = (
 				2A000001000000000000004F /* DictionaryView.swift */,
 				2A0000010000000000000075 /* VocabularyCardEditSheet.swift */,
+				2A000001000000000000007C /* VocabularyFolderRenameSheet.swift */,
 			);
 			path = Dictionary;
 			sourceTree = "<group>";
@@ -246,6 +254,7 @@
 			children = (
 				2A0000010000000000000057 /* VocabularyCard.swift */,
 				2A0000010000000000000059 /* VocabularyStore.swift */,
+				2A000001000000000000007A /* VocabularyFolderKey.swift */,
 			);
 			path = Vocabulary;
 			sourceTree = "<group>";
@@ -412,6 +421,9 @@
 				2A0000010000000000000074 /* QuizPanelView.swift in Sources */,
 				2A0000010000000000000076 /* VocabularyCardEditSheet.swift in Sources */,
 				2A0000010000000000000078 /* YouTubeSessionStore.swift in Sources */,
+				2A0000010000000000000079 /* VocabularyFolderKey.swift in Sources */,
+				2A000001000000000000007D /* VocabularyFolderRenameSheet.swift in Sources */,
+				2A000001000000000000007F /* YouTubeVideoMetadataService.swift in Sources */,
 				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
 				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
 			);

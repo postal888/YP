@@ -230,7 +230,9 @@ struct PDFReaderScreen: View {
             source: word.lookupKey,
             translation: translation,
             sourceLanguage: sourceLanguage.rawValue,
-            bookTitle: book.title
+            bookTitle: book.title,
+            folderKey: VocabularyFolderKey.pdf(book.title),
+            folderTitle: book.title
         )
         didSaveCurrentWord = true
     }

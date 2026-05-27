@@ -6,6 +6,8 @@ struct YouTubeSubtitlesView: View {
     let playbackSec: Double?
     let sourceLanguage: String
     let translatedKeys: Set<String>
+    let folderKey: String?
+    let folderTitle: String?
     @Binding var translationPreview: String?
     @Binding var isTranslating: Bool
     let onTimestampTap: ((YouTubeSubtitleLine) -> Void)?
@@ -23,6 +25,8 @@ struct YouTubeSubtitlesView: View {
         playbackSec: Double?,
         sourceLanguage: String,
         translatedKeys: Set<String>,
+        folderKey: String? = nil,
+        folderTitle: String? = nil,
         translationPreview: Binding<String?>,
         isTranslating: Binding<Bool>,
         onTimestampTap: ((YouTubeSubtitleLine) -> Void)? = nil,
@@ -33,6 +37,8 @@ struct YouTubeSubtitlesView: View {
         self.playbackSec = playbackSec
         self.sourceLanguage = sourceLanguage
         self.translatedKeys = translatedKeys
+        self.folderKey = folderKey
+        self.folderTitle = folderTitle
         self._translationPreview = translationPreview
         self._isTranslating = isTranslating
         self.onTimestampTap = onTimestampTap
@@ -137,7 +143,9 @@ struct YouTubeSubtitlesView: View {
             source: entry.source,
             translation: entry.translation,
             sourceLanguage: sourceLanguage,
-            bookTitle: "YouTube"
+            bookTitle: folderTitle,
+            folderKey: folderKey,
+            folderTitle: folderTitle
         )
         savedPreviewWordKey = entry.source
         onWordTranslated(entry)

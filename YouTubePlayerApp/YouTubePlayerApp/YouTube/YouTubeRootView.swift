@@ -9,8 +9,8 @@ struct YouTubeRootView: View {
         NavigationView {
             VStack(spacing: 0) {
                 ZStack {
-                    HomeView(errorLog: errorLog) { videoID in
-                        session.openVideo(videoID)
+                    HomeView(errorLog: errorLog) { videoID, title in
+                        session.openVideo(videoID, title: title)
                     }
 
                     NavigationLink(

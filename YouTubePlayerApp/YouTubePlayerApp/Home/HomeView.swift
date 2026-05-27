@@ -3,7 +3,7 @@ import SwiftUI
 @MainActor
 struct HomeView: View {
     @ObservedObject var errorLog: AppErrorLog
-    let onOpenVideo: (String) -> Void
+    let onOpenVideo: (String, String?) -> Void
 
     @State private var searchText = ""
     @State private var activeQuery = ""
@@ -114,7 +114,7 @@ struct HomeView: View {
 
             if let directVideoID = directVideoID(from: searchText), !searchText.isEmpty, !isSearchActive {
                 Button {
-                    onOpenVideo(directVideoID)
+                    onOpenVideo(directVideoID, nil)
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "link")
@@ -240,7 +240,7 @@ struct HomeView: View {
                 LazyVStack(spacing: 18) {
                     ForEach(results) { result in
                         YouTubeVideoCard(result: result) {
-                            onOpenVideo(result.videoID)
+                            onOpenVideo(result.videoID, result.title)
                         }
                     }
                 }
@@ -338,7 +338,7 @@ struct HomeView: View {
         case .video(let result):
             isSearchActive = false
             suggestionItems = []
-            onOpenVideo(result.videoID)
+            onOpenVideo(result.videoID, result.title)
 
         case .channel(let channel):
             searchFilter = .video
@@ -362,7 +362,7 @@ struct HomeView: View {
 
         if let videoID = directVideoID(from: raw) {
             isSearchActive = false
-            onOpenVideo(videoID)
+            onOpenVideo(videoID, nil)
             return
         }
 
@@ -397,7 +397,7 @@ struct HomeView: View {
 #if DEBUG
 struct HomeView_Previews: PreviewProvider {
     static var previews: some View {
-        HomeView(errorLog: AppErrorLog(), onOpenVideo: { _ in })
+        HomeView(errorLog: AppErrorLog(), onOpenVideo: { _, _ in })
     }
 }
 #endif

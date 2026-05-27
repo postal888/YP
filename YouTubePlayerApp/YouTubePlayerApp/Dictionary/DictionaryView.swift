@@ -8,16 +8,22 @@ struct DictionaryView: View {
 
     @State private var searchText = ""
     @State private var editingCard: VocabularyCard?
+    @State private var renamingFolder: VocabularyFolderGroup?
+    @State private var expandedFolderKeys: Set<String> = []
 
     private var filteredCards: [VocabularyCard] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !query.isEmpty else { return vocabularyStore.cards }
-        return vocabularyStore.cards.filter {
-            $0.source.lowercased().contains(query)
-                || $0.translation.lowercased().contains(query)
-                || ($0.example?.lowercased().contains(query) ?? false)
-                || ($0.bookTitle?.lowercased().contains(query) ?? false)
+        return vocabularyStore.cards.filter { card in
+            card.source.lowercased().contains(query)
+                || card.translation.lowercased().contains(query)
+                || (card.example?.lowercased().contains(query) ?? false)
+                || vocabularyStore.folderDisplayName(for: card.resolvedFolderKey).lowercased().contains(query)
         }
+    }
+
+    private var folders: [VocabularyFolderGroup] {
+        vocabularyStore.groupedFolders(from: filteredCards)
     }
 
     var body: some View {
@@ -38,8 +44,8 @@ struct DictionaryView: View {
 
                     ScrollView {
                         LazyVStack(spacing: 10) {
-                            ForEach(filteredCards) { card in
-                                cardRow(card)
+                            ForEach(folders) { folder in
+                                folderSection(folder)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -52,6 +58,22 @@ struct DictionaryView: View {
             .sheet(item: $editingCard) { card in
                 VocabularyCardEditSheet(card: card) { source, translation, example in
                     vocabularyStore.update(card, source: source, translation: translation, example: example)
+                }
+            }
+            .sheet(item: $renamingFolder) { folder in
+                VocabularyFolderRenameSheet(
+                    folderKey: folder.key,
+                    currentTitle: folder.title
+                ) { newTitle in
+                    vocabularyStore.renameFolder(key: folder.key, title: newTitle)
+                }
+            }
+            .onAppear {
+                expandedFolderKeys = Set(folders.map(\.key))
+            }
+            .onChange(of: vocabularyStore.cards.count) { _ in
+                for folder in folders where !expandedFolderKeys.contains(folder.key) {
+                    expandedFolderKeys.insert(folder.key)
                 }
             }
         }
@@ -69,7 +91,7 @@ struct DictionaryView: View {
                     .foregroundStyle(PortTheme.heading)
             }
 
-            Text("\(vocabularyStore.cards.count) карточек · нажмите для редактирования")
+            Text("\(vocabularyStore.cards.count) карточек · \(folders.count) папок")
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
         }
@@ -77,6 +99,69 @@ struct DictionaryView: View {
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 16)
+    }
+
+    private func folderSection(_ folder: VocabularyFolderGroup) -> some View {
+        VStack(spacing: 8) {
+            folderHeader(folder)
+
+            if expandedFolderKeys.contains(folder.key) {
+                ForEach(folder.cards) { card in
+                    cardRow(card)
+                }
+            }
+        }
+    }
+
+    private func folderHeader(_ folder: VocabularyFolderGroup) -> some View {
+        HStack(spacing: 10) {
+            Button {
+                toggleFolder(folder.key)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: expandedFolderKeys.contains(folder.key) ? "folder.fill" : "folder")
+                        .foregroundStyle(folder.isYouTube ? PortTheme.accent : PortTheme.textSubtle)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(folder.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PortTheme.heading)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        Text("\(folder.cards.count) слов")
+                            .font(.caption)
+                            .foregroundStyle(PortTheme.textMuted)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: expandedFolderKeys.contains(folder.key) ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PortTheme.textMuted)
+                }
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                renamingFolder = folder
+            } label: {
+                Image(systemName: "pencil.circle")
+                    .font(.body)
+                    .foregroundStyle(PortTheme.accent)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Переименовать папку")
+        }
+        .padding(12)
+        .portCard()
+    }
+
+    private func toggleFolder(_ key: String) {
+        if expandedFolderKeys.contains(key) {
+            expandedFolderKeys.remove(key)
+        } else {
+            expandedFolderKeys.insert(key)
+        }
     }
 
     private func cardRow(_ card: VocabularyCard) -> some View {
@@ -111,13 +196,6 @@ struct DictionaryView: View {
                             .padding(.vertical, 3)
                             .background(PortTheme.accentSoft)
                             .clipShape(Capsule())
-
-                        if let bookTitle = card.bookTitle {
-                            Text(bookTitle)
-                                .font(.caption)
-                                .foregroundStyle(PortTheme.textMuted)
-                                .lineLimit(1)
-                        }
 
                         Spacer()
 

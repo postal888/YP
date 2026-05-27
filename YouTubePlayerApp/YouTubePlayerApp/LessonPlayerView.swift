@@ -10,6 +10,7 @@ struct LessonPlayerView: View {
     var onClose: (() -> Void)? = nil
 
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var vocabularyStore: VocabularyStore
 
     private var playerHolder: YouTubePlayerHolder { session.playerHolder }
     @State private var watchedSeconds: Double = 0
@@ -45,6 +46,13 @@ struct LessonPlayerView: View {
         }
         .background(PortTheme.background.ignoresSafeArea())
         .navigationBarHidden(true)
+        .onChange(of: session.selectedVideoTitle) { title in
+            guard let title, !title.isEmpty else { return }
+            vocabularyStore.ensureFolderTitle(
+                key: VocabularyFolderKey.youtube(videoID),
+                defaultTitle: title
+            )
+        }
         .task(id: transcriptKey) {
             await loadSubtitlesIfNeeded()
         }
@@ -248,6 +256,8 @@ struct LessonPlayerView: View {
                     playbackSec: currentTime,
                     sourceLanguage: selectedLanguage.rawValue,
                     translatedKeys: translatedWordKeys,
+                    folderKey: VocabularyFolderKey.youtube(videoID),
+                    folderTitle: session.selectedVideoTitle,
                     translationPreview: $translationPreview,
                     isTranslating: $isTranslatingWord,
                     onTimestampTap: { line in
@@ -265,7 +275,9 @@ struct LessonPlayerView: View {
 
                 RecentTranslationsView(
                     entries: recentTranslations,
-                    sourceLanguage: selectedLanguage.rawValue
+                    sourceLanguage: selectedLanguage.rawValue,
+                    folderKey: VocabularyFolderKey.youtube(videoID),
+                    folderTitle: session.selectedVideoTitle
                 ) {
                     recentTranslations = []
                 }

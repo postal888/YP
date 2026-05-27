@@ -4,6 +4,7 @@ import Combine
 @MainActor
 final class YouTubeSessionStore: ObservableObject {
     @Published var selectedVideoID: String?
+    @Published private(set) var selectedVideoTitle: String?
 
     let playerHolder = YouTubePlayerHolder()
 
@@ -11,12 +12,28 @@ final class YouTubeSessionStore: ObservableObject {
         selectedVideoID != nil
     }
 
-    func openVideo(_ videoID: String) {
+    var currentFolderKey: String? {
+        selectedVideoID.map { VocabularyFolderKey.youtube($0) }
+    }
+
+    var currentFolderTitle: String? {
+        selectedVideoTitle ?? selectedVideoID.map { VocabularyFolderKey.defaultTitle(for: VocabularyFolderKey.youtube($0)) }
+    }
+
+    func openVideo(_ videoID: String, title: String? = nil) {
         selectedVideoID = videoID
+        selectedVideoTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if selectedVideoTitle?.isEmpty != false {
+            Task {
+                await loadVideoTitleIfNeeded(videoID: videoID)
+            }
+        }
     }
 
     func closePlayer() {
         selectedVideoID = nil
+        selectedVideoTitle = nil
     }
 
     func pause() {
@@ -25,5 +42,13 @@ final class YouTubeSessionStore: ObservableObject {
 
     func applyBackgroundPlaybackPolicy(enabled: Bool) {
         playerHolder.applyBackgroundPlaybackPolicy(enabled: enabled)
+    }
+
+    private func loadVideoTitleIfNeeded(videoID: String) async {
+        guard selectedVideoID == videoID, selectedVideoTitle?.isEmpty != false else { return }
+        if let title = await YouTubeVideoMetadataService.fetchTitle(videoID: videoID) {
+            guard selectedVideoID == videoID else { return }
+            selectedVideoTitle = title
+        }
     }
 }
