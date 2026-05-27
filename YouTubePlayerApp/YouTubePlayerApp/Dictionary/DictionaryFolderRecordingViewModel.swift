@@ -28,6 +28,8 @@ final class DictionaryFolderRecordingViewModel: ObservableObject {
     private let exportService = DictionaryAudioExportService.shared
     private let ttsService = WordTTSService.shared
 
+    private var strings: AppStrings { appSettings.strings }
+
     init(
         folder: VocabularyFolderGroup,
         playbackCards: [VocabularyCard],
@@ -47,7 +49,8 @@ final class DictionaryFolderRecordingViewModel: ObservableObject {
     var playbackCount: Int { playbackCards.count }
     var hasRecording: Bool { vocabularyStore.hasFolderRecording(for: folder.key) }
     var isRecordingThisFolder: Bool {
-        recorderService.isRecording && recorderService.recordingFolderKey == folder.key
+        recorderService.recordingFolderKey == folder.key
+            && (recorderService.isRecording || recorderService.isPaused)
     }
     var isPlayingThisFolder: Bool {
         playerService.isPlaying && playerService.playingFolderKey == folder.key
@@ -76,8 +79,8 @@ final class DictionaryFolderRecordingViewModel: ObservableObject {
                 }
             } catch DictionaryAudioRecorderError.permissionDenied {
                 showAlert = true
-                alertTitle = "Нет доступа к микрофону"
-                alertMessage = "Разрешите доступ к микрофону в Настройках, чтобы записывать произношение слов."
+                alertTitle = strings.microphonePermissionTitle
+                alertMessage = strings.microphonePermissionMessage
             } catch {
                 presentError(error)
             }
@@ -97,6 +100,17 @@ final class DictionaryFolderRecordingViewModel: ObservableObject {
         } catch {
             presentError(error)
         }
+    }
+
+    func pauseRecording() {
+        guard isRecordingThisFolder else { return }
+        ttsService.stop()
+        recorderService.pauseRecording()
+    }
+
+    func resumeRecording() {
+        guard recorderService.isPaused, recorderService.recordingFolderKey == folder.key else { return }
+        recorderService.resumeRecording()
     }
 
     func playRecording() {
@@ -145,8 +159,10 @@ final class DictionaryFolderRecordingViewModel: ObservableObject {
 
     func cleanupOnDismiss() {
         ttsService.stop()
-        if isRecordingThisFolder {
-            recorderService.cancelRecording(forFolderKey: folder.key)
+        if recorderService.recordingFolderKey == folder.key {
+            if recorderService.isRecording || recorderService.isPaused {
+                recorderService.cancelRecording(forFolderKey: folder.key)
+            }
         }
         if isPlayingThisFolder {
             playerService.stop()
@@ -154,7 +170,7 @@ final class DictionaryFolderRecordingViewModel: ObservableObject {
     }
 
     private func presentError(_ error: Error) {
-        alertTitle = "Ошибка"
+        alertTitle = strings.error
         alertMessage = error.localizedDescription
         showAlert = true
     }

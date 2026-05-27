@@ -72,6 +72,17 @@
 		2A00000100000000000000A1 /* DictionaryRecordingsLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000A0 /* DictionaryRecordingsLibraryView.swift */; };
 		2A00000100000000000000A3 /* DictionaryRecordingListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000A2 /* DictionaryRecordingListItem.swift */; };
 		2A00000100000000000000A5 /* TranslationPreviewFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000A4 /* TranslationPreviewFormatting.swift */; };
+		2A00000100000000000000A7 /* SubtitleTranslationPreviewBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000A6 /* SubtitleTranslationPreviewBar.swift */; };
+		2A00000100000000000000A9 /* DictionaryFolderRecordingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000A8 /* DictionaryFolderRecordingController.swift */; };
+		2A00000100000000000000AB /* DictionaryFolderRecordingMiniBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000AA /* DictionaryFolderRecordingMiniBar.swift */; };
+		2A00000100000000000000AD /* DictionaryImageStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000AC /* DictionaryImageStorage.swift */; };
+		2A00000100000000000000AF /* ImagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000AE /* ImagePickerView.swift */; };
+		2A00000100000000000000B1 /* VocabularyCardImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000B0 /* VocabularyCardImageView.swift */; };
+		2A00000100000000000000B3 /* CardStudyStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000B2 /* CardStudyStats.swift */; };
+		2A00000100000000000000B5 /* StudyWordSelectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000B4 /* StudyWordSelectionStore.swift */; };
+		2A00000100000000000000B7 /* StudyWordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000B6 /* StudyWordListView.swift */; };
+		2A00000100000000000000B9 /* CardStatsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000B8 /* CardStatsBar.swift */; };
+		2A00000100000000000000BB /* ProficonBrandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000100000000000000BA /* ProficonBrandView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -140,6 +151,17 @@
 		2A00000100000000000000A0 /* DictionaryRecordingsLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryRecordingsLibraryView.swift; sourceTree = "<group>"; };
 		2A00000100000000000000A2 /* DictionaryRecordingListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryRecordingListItem.swift; sourceTree = "<group>"; };
 		2A00000100000000000000A4 /* TranslationPreviewFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationPreviewFormatting.swift; sourceTree = "<group>"; };
+		2A00000100000000000000A6 /* SubtitleTranslationPreviewBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleTranslationPreviewBar.swift; sourceTree = "<group>"; };
+		2A00000100000000000000A8 /* DictionaryFolderRecordingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryFolderRecordingController.swift; sourceTree = "<group>"; };
+		2A00000100000000000000AA /* DictionaryFolderRecordingMiniBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryFolderRecordingMiniBar.swift; sourceTree = "<group>"; };
+		2A00000100000000000000AC /* DictionaryImageStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryImageStorage.swift; sourceTree = "<group>"; };
+		2A00000100000000000000AE /* ImagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePickerView.swift; sourceTree = "<group>"; };
+		2A00000100000000000000B0 /* VocabularyCardImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyCardImageView.swift; sourceTree = "<group>"; };
+		2A00000100000000000000B2 /* CardStudyStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardStudyStats.swift; sourceTree = "<group>"; };
+		2A00000100000000000000B4 /* StudyWordSelectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyWordSelectionStore.swift; sourceTree = "<group>"; };
+		2A00000100000000000000B6 /* StudyWordListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyWordListView.swift; sourceTree = "<group>"; };
+		2A00000100000000000000B8 /* CardStatsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardStatsBar.swift; sourceTree = "<group>"; };
+		2A00000100000000000000BA /* ProficonBrandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProficonBrandView.swift; sourceTree = "<group>"; };
 		2A000001000000000000007B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -214,6 +236,9 @@
 			children = (
 				2A0000010000000000000065 /* StudyTabScreen.swift */,
 				2A0000010000000000000073 /* QuizPanelView.swift */,
+				2A00000100000000000000B4 /* StudyWordSelectionStore.swift */,
+				2A00000100000000000000B6 /* StudyWordListView.swift */,
+				2A00000100000000000000B8 /* CardStatsBar.swift */,
 			);
 			path = Study;
 			sourceTree = "<group>";
@@ -233,6 +258,7 @@
 				2A000001000000000000006B /* PortuPrepBackendService.swift */,
 				2A000001000000000000006D /* WordTTSService.swift */,
 				2A0000010000000000000086 /* DictionaryAudioStorage.swift */,
+				2A00000100000000000000AC /* DictionaryImageStorage.swift */,
 				2A0000010000000000000088 /* DictionaryAudioRecorderService.swift */,
 				2A000001000000000000008A /* DictionaryAudioPlayerService.swift */,
 				2A000001000000000000008C /* AudioTranscodingService.swift */,
@@ -247,6 +273,7 @@
 			isa = PBXGroup;
 			children = (
 				2A000001000000000000006F /* LearningStatsStore.swift */,
+				2A00000100000000000000B2 /* CardStudyStats.swift */,
 			);
 			path = Stats;
 			sourceTree = "<group>";
@@ -293,6 +320,10 @@
 				2A000001000000000000009C /* DictionaryFolderRecorderPanel.swift */,
 				2A0000010000000000000094 /* ShareSheet.swift */,
 				2A00000100000000000000A0 /* DictionaryRecordingsLibraryView.swift */,
+				2A00000100000000000000A8 /* DictionaryFolderRecordingController.swift */,
+				2A00000100000000000000AA /* DictionaryFolderRecordingMiniBar.swift */,
+				2A00000100000000000000AE /* ImagePickerView.swift */,
+				2A00000100000000000000B0 /* VocabularyCardImageView.swift */,
 			);
 			path = Dictionary;
 			sourceTree = "<group>";
@@ -334,6 +365,7 @@
 			isa = PBXGroup;
 			children = (
 				2A0000010000000000000037 /* PortTheme.swift */,
+				2A00000100000000000000BA /* ProficonBrandView.swift */,
 			);
 			path = Theme;
 			sourceTree = "<group>";
@@ -351,6 +383,7 @@
 				2A0000010000000000000033 /* InteractiveSubtitleText.swift */,
 				2A0000010000000000000035 /* RecentTranslationsView.swift */,
 				2A00000100000000000000A4 /* TranslationPreviewFormatting.swift */,
+				2A00000100000000000000A6 /* SubtitleTranslationPreviewBar.swift */,
 			);
 			path = Subtitles;
 			sourceTree = "<group>";
@@ -492,6 +525,17 @@
 				2A00000100000000000000A1 /* DictionaryRecordingsLibraryView.swift in Sources */,
 				2A00000100000000000000A3 /* DictionaryRecordingListItem.swift in Sources */,
 				2A00000100000000000000A5 /* TranslationPreviewFormatting.swift in Sources */,
+				2A00000100000000000000A7 /* SubtitleTranslationPreviewBar.swift in Sources */,
+				2A00000100000000000000A9 /* DictionaryFolderRecordingController.swift in Sources */,
+				2A00000100000000000000AB /* DictionaryFolderRecordingMiniBar.swift in Sources */,
+				2A00000100000000000000AD /* DictionaryImageStorage.swift in Sources */,
+				2A00000100000000000000AF /* ImagePickerView.swift in Sources */,
+				2A00000100000000000000B1 /* VocabularyCardImageView.swift in Sources */,
+				2A00000100000000000000B3 /* CardStudyStats.swift in Sources */,
+				2A00000100000000000000B5 /* StudyWordSelectionStore.swift in Sources */,
+				2A00000100000000000000B7 /* StudyWordListView.swift in Sources */,
+				2A00000100000000000000B9 /* CardStatsBar.swift in Sources */,
+				2A00000100000000000000BB /* ProficonBrandView.swift in Sources */,
 				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
 				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
 			);
@@ -559,7 +603,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = YouTubePlayerApp/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "YouTube Player";
+				INFOPLIST_KEY_CFBundleDisplayName = Proficon;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -592,7 +636,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = YouTubePlayerApp/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "YouTube Player";
+				INFOPLIST_KEY_CFBundleDisplayName = Proficon;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

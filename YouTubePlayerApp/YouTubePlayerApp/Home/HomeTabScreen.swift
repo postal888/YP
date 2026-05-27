@@ -5,7 +5,10 @@ struct HomeTabScreen: View {
     @EnvironmentObject private var vocabularyStore: VocabularyStore
     @EnvironmentObject private var bookLibrary: BookLibraryStore
     @EnvironmentObject private var learningStats: LearningStatsStore
+    @EnvironmentObject private var appSettings: AppSettings
     let onSelectTab: (AppTab) -> Void
+
+    private var strings: AppStrings { appSettings.strings }
 
     var body: some View {
         ScrollView {
@@ -26,9 +29,7 @@ struct HomeTabScreen: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Text("PortuLearn")
-                    .font(.title2.bold())
-                    .foregroundStyle(PortTheme.heading)
+                ProficonBrandView(style: .compact, showsLogo: true)
                 Text("beta")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(PortTheme.accent)
@@ -37,7 +38,8 @@ struct HomeTabScreen: View {
                     .background(PortTheme.accentSoft)
                     .clipShape(Capsule())
             }
-            Text("Сегодняшний план")
+            ProficonBrandView(style: .full, font: .caption.weight(.medium))
+            Text(strings.homeTodayPlan)
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
         }
@@ -162,6 +164,7 @@ struct HomeTabScreen_Previews: PreviewProvider {
             .environmentObject(VocabularyStore())
             .environmentObject(BookLibraryStore())
             .environmentObject(LearningStatsStore())
+            .environmentObject(AppSettings())
     }
 }
 #endif

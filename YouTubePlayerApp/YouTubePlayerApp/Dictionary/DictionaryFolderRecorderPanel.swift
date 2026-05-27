@@ -3,26 +3,13 @@ import UIKit
 
 @MainActor
 struct DictionaryFolderRecorderContent: View {
-    @StateObject private var viewModel: DictionaryFolderRecordingViewModel
+    @ObservedObject var viewModel: DictionaryFolderRecordingViewModel
     @ObservedObject private var playerService = DictionaryAudioPlayerService.shared
     @ObservedObject private var recorderService = DictionaryAudioRecorderService.shared
     @ObservedObject private var ttsService = WordTTSService.shared
+    @EnvironmentObject private var appSettings: AppSettings
 
-    init(
-        folder: VocabularyFolderGroup,
-        playbackCards: [VocabularyCard],
-        vocabularyStore: VocabularyStore,
-        appSettings: AppSettings
-    ) {
-        _viewModel = StateObject(
-            wrappedValue: DictionaryFolderRecordingViewModel(
-                folder: folder,
-                playbackCards: playbackCards,
-                vocabularyStore: vocabularyStore,
-                appSettings: appSettings
-            )
-        )
-    }
+    private var strings: AppStrings { appSettings.strings }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -33,28 +20,27 @@ struct DictionaryFolderRecorderContent: View {
             recorderControls
         }
         .onAppear { viewModel.syncPhaseFromStore() }
-        .onDisappear { viewModel.cleanupOnDismiss() }
-        .confirmationDialog("Экспорт записи", isPresented: $viewModel.showExportOptions, titleVisibility: .visible) {
-            Button("Export as M4A") { viewModel.exportAsM4A() }
-            Button("Export as MP3") { viewModel.exportAsMP3() }
-            Button("Cancel", role: .cancel) {}
+        .confirmationDialog(strings.exportRecording, isPresented: $viewModel.showExportOptions, titleVisibility: .visible) {
+            Button(strings.exportAsM4A) { viewModel.exportAsM4A() }
+            Button(strings.exportAsMP3) { viewModel.exportAsMP3() }
+            Button(strings.cancel, role: .cancel) {}
         }
-        .confirmationDialog("Удалить запись папки?", isPresented: $viewModel.showDeleteConfirmation, titleVisibility: .visible) {
-            Button("Удалить", role: .destructive) { viewModel.deleteRecording() }
-            Button("Отмена", role: .cancel) {}
+        .confirmationDialog(strings.deleteFolderRecordingTitle, isPresented: $viewModel.showDeleteConfirmation, titleVisibility: .visible) {
+            Button(strings.delete, role: .destructive) { viewModel.deleteRecording() }
+            Button(strings.cancel, role: .cancel) {}
         } message: {
-            Text("Запись папки будет удалена без возможности восстановления.")
+            Text(strings.deleteFolderRecordingMessage)
         }
         .alert(viewModel.alertTitle, isPresented: $viewModel.showAlert) {
-            if viewModel.alertTitle == "Нет доступа к микрофону" {
-                Button("Настройки") {
+            if viewModel.alertTitle == strings.microphonePermissionTitle {
+                Button(strings.openSettings) {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
                     }
                 }
-                Button("Отмена", role: .cancel) {}
+                Button(strings.cancel, role: .cancel) {}
             } else {
-                Button("OK", role: .cancel) {}
+                Button(strings.ok, role: .cancel) {}
             }
         } message: {
             Text(viewModel.alertMessage)
@@ -69,7 +55,7 @@ struct DictionaryFolderRecorderContent: View {
             Text(viewModel.folderTitle)
                 .font(.title3.bold())
                 .foregroundStyle(PortTheme.heading)
-            Text("\(viewModel.playbackCount) слов в папке")
+            Text(strings.wordsCount(viewModel.playbackCount))
                 .font(.body)
                 .foregroundStyle(PortTheme.textSubtle)
             if viewModel.hasRecording {
@@ -87,10 +73,10 @@ struct DictionaryFolderRecorderContent: View {
         VStack(alignment: .leading, spacing: 10) {
             Toggle(isOn: $viewModel.speakDuringRecording) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Озвучить слова папки")
+                    Text(strings.speakFolderWords)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PortTheme.heading)
-                    Text("\(viewModel.playbackCount) слов · слово и перевод")
+                    Text("\(viewModel.playbackCount) \(strings.words) · \(strings.wordAndTranslation)")
                         .font(.caption)
                         .foregroundStyle(PortTheme.textMuted)
                 }
@@ -99,7 +85,7 @@ struct DictionaryFolderRecorderContent: View {
             .disabled(viewModel.phase == .recording)
 
             if viewModel.phase == .recording, ttsService.isPlaying {
-                Label("Идёт озвучивание…", systemImage: "speaker.wave.2.fill")
+                Label(strings.speakingInProgress, systemImage: "speaker.wave.2.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PortTheme.accent)
             }
@@ -122,13 +108,13 @@ struct DictionaryFolderRecorderContent: View {
 
     private var idleControls: some View {
         VStack(spacing: 14) {
-            Text("Запишите произношение всех слов папки. Можно со встроенной озвучкой или своим голосом.")
+            Text(strings.recordFolderHint)
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Button { viewModel.startRecording() } label: {
-                Label("Записать папку", systemImage: "mic.fill")
+                Label(strings.recordFolderAction, systemImage: "mic.fill")
             }
             .buttonStyle(PortPrimaryButtonStyle())
         }
@@ -140,15 +126,30 @@ struct DictionaryFolderRecorderContent: View {
         VStack(spacing: 14) {
             HStack(spacing: 10) {
                 Circle().fill(PortTheme.danger).frame(width: 10, height: 10)
-                Text("Идёт запись папки…")
+                Text(strings.folderRecordingInProgress)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PortTheme.heading)
                 Spacer()
             }
-            Button { viewModel.stopRecording() } label: {
-                Label("Стоп", systemImage: "stop.fill")
+
+            HStack(spacing: 10) {
+                if recorderService.isPaused {
+                    Button { viewModel.resumeRecording() } label: {
+                        Label(strings.record, systemImage: "mic.fill")
+                    }
+                    .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
+                } else {
+                    Button { viewModel.pauseRecording() } label: {
+                        Label(strings.pause, systemImage: "pause.fill")
+                    }
+                    .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
+                }
+
+                Button { viewModel.stopRecording() } label: {
+                    Label(strings.stop, systemImage: "stop.fill")
+                }
+                .buttonStyle(PortPrimaryButtonStyle())
             }
-            .buttonStyle(PortPrimaryButtonStyle())
         }
         .padding(14)
         .portCard()
@@ -159,29 +160,29 @@ struct DictionaryFolderRecorderContent: View {
             HStack(spacing: 10) {
                 if playerService.isPlaying && playerService.playingFolderKey == viewModel.folderKey {
                     Button { viewModel.stopPlayback() } label: {
-                        Label("Стоп", systemImage: "stop.fill")
+                        Label(strings.stop, systemImage: "stop.fill")
                     }
                     .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
                 } else {
                     Button { viewModel.playRecording() } label: {
-                        Label("Слушать", systemImage: "play.fill")
+                        Label(strings.play, systemImage: "play.fill")
                     }
                     .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
                 }
 
                 Button { viewModel.showExportOptions = true } label: {
-                    Label("Экспорт", systemImage: "square.and.arrow.up")
+                    Label(strings.export, systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
             }
 
             Button(role: .destructive) { viewModel.showDeleteConfirmation = true } label: {
-                Label("Удалить", systemImage: "trash")
+                Label(strings.delete, systemImage: "trash")
             }
             .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
 
             Button { viewModel.startRecording() } label: {
-                Label("Записать снова", systemImage: "mic.fill")
+                Label(strings.recordAgain, systemImage: "mic.fill")
             }
             .buttonStyle(PortPrimaryButtonStyle())
         }
@@ -197,29 +198,34 @@ struct DictionaryFolderRecorderContent: View {
 
 @MainActor
 struct DictionaryFolderRecorderPanel: View {
-    let session: DictionaryFolderRecordingSession
-    let vocabularyStore: VocabularyStore
-    let appSettings: AppSettings
+    @ObservedObject var viewModel: DictionaryFolderRecordingViewModel
+    let onMinimize: () -> Void
+    let onClose: () -> Void
 
-    @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject private var appSettings: AppSettings
+
+    private var strings: AppStrings { appSettings.strings }
 
     var body: some View {
         NavigationView {
             ScrollView {
-                DictionaryFolderRecorderContent(
-                    folder: session.folder,
-                    playbackCards: session.playbackCards,
-                    vocabularyStore: vocabularyStore,
-                    appSettings: appSettings
-                )
-                .padding(16)
+                DictionaryFolderRecorderContent(viewModel: viewModel)
+                    .padding(16)
             }
             .background(PortTheme.background.ignoresSafeArea())
-            .navigationTitle("Диктофон папки")
+            .navigationTitle(strings.folderDictaphoneTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Закрыть") { presentationMode.wrappedValue.dismiss() }
+                    Button(strings.close) { onClose() }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        onMinimize()
+                    } label: {
+                        Image(systemName: "chevron.down")
+                    }
+                    .accessibilityLabel(strings.minimizeRecorder)
                 }
             }
         }

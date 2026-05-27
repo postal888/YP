@@ -9,6 +9,7 @@ struct ContentView: View {
     @StateObject private var bookLibrary = BookLibraryStore()
     @StateObject private var appSettings = AppSettings()
     @StateObject private var learningStats = LearningStatsStore()
+    @StateObject private var studySelection = StudyWordSelectionStore()
     @StateObject private var youtubeSession = YouTubeSessionStore()
     @State private var selectedTab: AppTab = .home
 
@@ -22,6 +23,7 @@ struct ContentView: View {
         .environmentObject(bookLibrary)
         .environmentObject(appSettings)
         .environmentObject(learningStats)
+        .environmentObject(studySelection)
         .preferredColorScheme(.dark)
         .accentColor(PortTheme.accent)
         .background(PortTheme.background.ignoresSafeArea())

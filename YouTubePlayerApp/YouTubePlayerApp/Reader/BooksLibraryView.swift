@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct BooksLibraryView: View {
     @EnvironmentObject private var bookLibrary: BookLibraryStore
+    @EnvironmentObject private var appSettings: AppSettings
 
     @State private var showDocumentPicker = false
     @State private var importError: String?
@@ -65,22 +66,30 @@ struct BooksLibraryView: View {
         }
     }
 
+    private var strings: AppStrings { appSettings.strings }
+
     private var hero: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                Image(systemName: "book.fill")
-                    .font(.title2)
-                    .foregroundStyle(PortTheme.accent)
-                Text("Книги")
+                Image("ProficonLogo")
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                Text(strings.readerTitle)
                     .font(.title2.bold())
                     .foregroundStyle(PortTheme.heading)
             }
 
-            Text("Читайте PDF и нажимайте на слова")
+            ProficonBrandView(style: .full, font: .subheadline.weight(.semibold))
+
+            Text(strings.readerHeroTitle)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(PortTheme.heading)
 
-            Text("PDFKit выделяет слово в точке нажатия — перевод и сохранение в словарь.")
+            Text(strings.readerHeroSubtitle)
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -94,7 +103,7 @@ struct BooksLibraryView: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "doc.badge.plus")
-                Text("Открыть PDF")
+                Text(strings.openPDF)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
@@ -111,7 +120,7 @@ struct BooksLibraryView: View {
 
     private var libraryList: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Библиотека")
+            Text(strings.librarySection)
                 .font(.headline)
                 .foregroundStyle(PortTheme.heading)
 
@@ -175,14 +184,14 @@ struct BooksLibraryView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Добавьте первую книгу", systemImage: "text.book.closed")
+            Label(strings.addFirstBook, systemImage: "text.book.closed")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PortTheme.textSubtle)
 
             VStack(alignment: .leading, spacing: 8) {
-                tipRow("1", "Нажмите «Открыть PDF»")
-                tipRow("2", "Тапайте по словам на странице")
-                tipRow("3", "Сохраняйте перевод в словарь")
+                tipRow("1", strings.readerTipOpenPDF)
+                tipRow("2", strings.readerTipTapWords)
+                tipRow("3", strings.readerTipSaveTranslation)
             }
         }
         .padding(16)
@@ -219,6 +228,7 @@ struct BooksLibraryView_Previews: PreviewProvider {
     static var previews: some View {
         BooksLibraryView()
             .environmentObject(BookLibraryStore())
+            .environmentObject(AppSettings())
     }
 }
 #endif

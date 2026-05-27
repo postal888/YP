@@ -7,6 +7,7 @@ struct LearningStatsSnapshot: Codable, Equatable {
     var ratingHistory: [Bool] = []
     var totalStudySeconds: Int = 0
     var launchDays: [String] = []
+    var cardStats: [String: CardStudyStats] = [:]
 }
 
 @MainActor
@@ -85,6 +86,25 @@ final class LearningStatsStore: ObservableObject {
         if snapshot.ratingHistory.count > 100 {
             snapshot.ratingHistory.removeFirst(snapshot.ratingHistory.count - 100)
         }
+        persist()
+    }
+
+    func stats(for cardID: UUID) -> CardStudyStats {
+        snapshot.cardStats[cardID.uuidString] ?? CardStudyStats()
+    }
+
+    func recordQuizPresentation(cardID: UUID) {
+        var stats = self.stats(for: cardID)
+        stats.quizShownCount += 1
+        snapshot.cardStats[cardID.uuidString] = stats
+        persist()
+    }
+
+    func recordQuizAnswer(cardID: UUID, correct: Bool) {
+        recordQuizAnswer(correct: correct)
+        var stats = self.stats(for: cardID)
+        stats.quizCorrectCount += correct ? 1 : 0
+        snapshot.cardStats[cardID.uuidString] = stats
         persist()
     }
 

@@ -25,9 +25,8 @@ struct AccountTabScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(strings.accountTitle)
-                .font(.title2.bold())
-                .foregroundStyle(PortTheme.heading)
+            ProficonBrandView(style: .compact, font: .title2.bold(), showsLogo: true, logoSize: 44)
+            ProficonBrandView(style: .full, font: .caption.weight(.medium))
             Text(strings.accountSubtitle)
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
@@ -137,7 +136,7 @@ struct AccountTabScreen: View {
 
     private var aboutSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(strings.aboutPortuLearn)
+            Text(strings.aboutProficon)
                 .font(.caption)
                 .foregroundStyle(PortTheme.textMuted)
         }

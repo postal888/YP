@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>The app needs photo library access so you can add association images to vocabulary cards.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>The app needs microphone access so you can record word pronunciations and translations.</string>
 	<key>UIBackgroundModes</key>

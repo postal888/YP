@@ -14,21 +14,25 @@ struct PDFReaderScreen: View {
     @State private var currentPage = 1
     @State private var pageCount = 0
     @State private var sourceLanguage: YouTubeSubtitleLanguage = .portuguese
-    @State private var activeWord: PDFReaderWordTap?
-    @State private var translationText: String?
+    @State private var isSourceLanguageExpanded = false
+    @State private var activeWord: ActiveSubtitleWord?
+    @State private var translationPreview: String?
     @State private var isTranslating = false
     @State private var translationError: String?
-    @State private var didSaveCurrentWord = false
+
+    private var strings: AppStrings { appSettings.strings }
+    private var folderKey: String { VocabularyFolderKey.pdf(book.title) }
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            translationBar
+            translationSection
 
             if let document {
                 PDFKitReaderView(
                     document: document,
                     savedWordKeys: vocabularyStore.lookupKeys,
+                    fontScale: CGFloat(appSettings.readerFontScale),
                     onWordTap: { word in
                         handleWordTap(word)
                     },
@@ -37,6 +41,7 @@ struct PDFReaderScreen: View {
                         pageCount = total
                     }
                 )
+                .padding(.horizontal, 12)
                 .background(PortTheme.surfaceMuted)
             } else if let loadError {
                 Spacer()
@@ -48,7 +53,7 @@ struct PDFReaderScreen: View {
                 Spacer()
             } else {
                 Spacer()
-                ProgressView("Открываем PDF…")
+                ProgressView(strings.openingPDF)
                     .tint(PortTheme.accent)
                 Spacer()
             }
@@ -57,6 +62,7 @@ struct PDFReaderScreen: View {
         .navigationBarHidden(true)
         .onAppear {
             bookLibrary.markOpened(book)
+            vocabularyStore.ensureFolderTitle(key: folderKey, defaultTitle: book.title)
             loadDocumentIfNeeded()
         }
     }
@@ -82,99 +88,139 @@ struct PDFReaderScreen: View {
                         .foregroundStyle(PortTheme.heading)
                         .lineLimit(1)
                     if pageCount > 0 {
-                        Text("Страница \(currentPage) из \(pageCount)")
+                        Text(strings.readerPageProgress(currentPage, total: pageCount))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(PortTheme.textMuted)
                     }
                 }
 
                 Spacer()
+
+                fontControls
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(YouTubeSubtitleLanguage.allCases) { language in
-                        Button(language.label) {
-                            sourceLanguage = language
-                            if let activeWord {
-                                Task { await translate(word: activeWord) }
-                            }
-                        }
-                        .buttonStyle(PortChipButtonStyle(isSelected: sourceLanguage == language))
-                    }
-                }
-            }
+            languagePicker
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 10)
+        .background(PortTheme.background)
     }
 
-    @ViewBuilder
-    private var translationBar: some View {
-        if activeWord != nil || translationText != nil || isTranslating || translationError != nil {
-            VStack(alignment: .leading, spacing: 10) {
+    private var fontControls: some View {
+        HStack(spacing: 6) {
+            Button {
+                adjustFontScale(by: -0.1)
+            } label: {
+                Image(systemName: "textformat.size.smaller")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(PortTheme.textSubtle)
+            .disabled(appSettings.readerFontScale <= 0.85)
+
+            Text("\(Int(appSettings.readerFontScale * 100))%")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(PortTheme.textMuted)
+                .frame(minWidth: 36)
+
+            Button {
+                adjustFontScale(by: 0.1)
+            } label: {
+                Image(systemName: "textformat.size.larger")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(PortTheme.textSubtle)
+            .disabled(appSettings.readerFontScale >= 1.6)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(PortTheme.surfaceInput)
+        .clipShape(Capsule())
+    }
+
+    private var languagePicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isSourceLanguageExpanded.toggle()
+                }
+            } label: {
                 HStack(spacing: 8) {
-                    if isTranslating {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(PortTheme.accent)
-                    }
-
-                    if let translationError {
-                        Text(translationError)
-                            .font(.subheadline)
-                            .foregroundStyle(PortTheme.danger)
-                    } else if let translationText {
-                        Text(translationText)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(PortTheme.heading)
-                    } else if let activeWord {
-                        Text("\(activeWord.display) — …")
-                            .font(.subheadline)
-                            .foregroundStyle(PortTheme.textMuted)
-                    }
-
+                    Text(strings.subtitleLanguage)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PortTheme.textSubtle)
                     Spacer()
+                    Text(sourceLanguage.label)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(PortTheme.textMuted)
+                    Image(systemName: isSourceLanguageExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PortTheme.textMuted)
+                }
+            }
+            .buttonStyle(.plain)
 
-                    if let activeWord,
-                       let translationText,
-                       !isTranslating,
-                       translationError == nil {
-                        let translation = extractedTranslation(from: translationText)
-                        if !translation.isEmpty {
-                            if didSaveCurrentWord || vocabularyStore.contains(source: activeWord.lookupKey) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.body)
-                                    .foregroundStyle(PortTheme.accent)
-                            } else {
-                                Button {
-                                    saveToVocabulary(word: activeWord, translation: translation)
-                                } label: {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.body)
-                                        .foregroundStyle(PortTheme.accent)
+            if isSourceLanguageExpanded {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(YouTubeSubtitleLanguage.allCases) { language in
+                            Button(language.label) {
+                                sourceLanguage = language
+                                if let activeWord {
+                                    Task { await translate(word: activeWord) }
                                 }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Добавить в словарь")
                             }
+                            .buttonStyle(PortChipButtonStyle(isSelected: sourceLanguage == language))
                         }
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(PortTheme.surface)
-            .overlay(alignment: .bottom) {
-                Divider().overlay(PortTheme.border)
+        }
+        .padding(14)
+        .portCard()
+    }
+
+    @ViewBuilder
+    private var translationSection: some View {
+        VStack(spacing: 8) {
+            if let translationError {
+                Text(translationError)
+                    .font(.subheadline)
+                    .foregroundStyle(PortTheme.danger)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+            }
+
+            if translationPreview != nil || isTranslating || activeWord != nil {
+                SubtitleTranslationPreviewBar(
+                    translationPreview: $translationPreview,
+                    isTranslating: $isTranslating,
+                    activeWord: $activeWord,
+                    sourceLanguage: sourceLanguage.rawValue,
+                    folderKey: folderKey,
+                    folderTitle: book.title,
+                    onWordAdded: { _ in }
+                )
+                .padding(.horizontal, 16)
             }
         }
+        .padding(.bottom, 8)
+        .background(PortTheme.background)
+    }
+
+    private func adjustFontScale(by delta: Double) {
+        let next = min(max(appSettings.readerFontScale + delta, 0.85), 1.6)
+        appSettings.readerFontScale = next
     }
 
     private func loadDocumentIfNeeded() {
         guard document == nil, loadError == nil else { return }
         guard let loaded = PDFDocument(url: book.localURL) else {
-            loadError = "Не удалось открыть PDF."
+            loadError = strings.readerOpenFailed
             return
         }
         document = loaded
@@ -183,16 +229,27 @@ struct PDFReaderScreen: View {
     }
 
     private func handleWordTap(_ word: PDFReaderWordTap) {
-        activeWord = word
+        let subtitleWord = ActiveSubtitleWord(lookupKey: word.lookupKey, display: word.display)
+        activeWord = subtitleWord
         translationError = nil
-        didSaveCurrentWord = vocabularyStore.contains(source: word.lookupKey)
         Task {
-            await translate(word: word)
+            await translate(word: subtitleWord)
         }
     }
 
-    private func translate(word: PDFReaderWordTap) async {
+    private func translate(word: ActiveSubtitleWord) async {
+        if let cached = await WordTranslationService.shared.cachedTranslation(
+            for: word.lookupKey,
+            sourceLanguage: sourceLanguage.rawValue,
+            context: .reader,
+            useChatGPT: appSettings.useChatGPTTranslation
+        ) {
+            translationPreview = "\(word.display) — \(cached)"
+            return
+        }
+
         isTranslating = true
+        translationPreview = "\(word.display) — …"
         translationError = nil
 
         do {
@@ -203,38 +260,12 @@ struct PDFReaderScreen: View {
                 useChatGPT: appSettings.useChatGPTTranslation,
                 backendBaseURL: appSettings.normalizedBackendURL
             )
-            translationText = "\(word.display) — \(translated)"
+            translationPreview = "\(word.display) — \(translated)"
         } catch {
-            translationText = nil
+            translationPreview = nil
             translationError = error.localizedDescription
         }
 
         isTranslating = false
-    }
-
-    private func extractedTranslation(from line: String) -> String {
-        if let range = line.range(of: " — ") {
-            return String(line[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        if let range = line.range(of: " - ") {
-            return String(line[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        if let range = line.range(of: " – ") {
-            return String(line[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return line.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func saveToVocabulary(word: PDFReaderWordTap, translation: String) {
-        guard !translation.isEmpty else { return }
-        vocabularyStore.add(
-            source: word.lookupKey,
-            translation: translation,
-            sourceLanguage: sourceLanguage.rawValue,
-            bookTitle: book.title,
-            folderKey: VocabularyFolderKey.pdf(book.title),
-            folderTitle: book.title
-        )
-        didSaveCurrentWord = true
     }
 }

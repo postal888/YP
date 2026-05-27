@@ -36,6 +36,7 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
     static let shared = DictionaryAudioRecorderService()
 
     @Published private(set) var isRecording = false
+    @Published private(set) var isPaused = false
     @Published private(set) var recordingWordID: UUID?
     @Published private(set) var recordingFolderKey: String?
 
@@ -69,7 +70,10 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
 
     @discardableResult
     func stopRecording() throws -> DictionaryRecordingResult {
-        guard isRecording, let recorder else {
+        guard let recorder else {
+            throw DictionaryAudioRecorderError.notRecording
+        }
+        guard isRecording || isPaused else {
             throw DictionaryAudioRecorderError.notRecording
         }
 
@@ -83,6 +87,7 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
         activeWordID = nil
         activeFolderKey = nil
         isRecording = false
+        isPaused = false
         recordingWordID = nil
         recordingFolderKey = nil
 
@@ -92,6 +97,20 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
             wordID: wordID,
             folderKey: folderKey
         )
+    }
+
+    func pauseRecording() {
+        guard isRecording, !isPaused, let recorder else { return }
+        recorder.pause()
+        isRecording = false
+        isPaused = true
+    }
+
+    func resumeRecording() {
+        guard isPaused, let recorder else { return }
+        guard recorder.record() else { return }
+        isRecording = true
+        isPaused = false
     }
 
     func cancelRecording(for wordID: UUID) {
@@ -159,6 +178,7 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
             activeWordID = wordID
             activeFolderKey = folderKey
             isRecording = true
+            isPaused = false
             recordingWordID = wordID
             recordingFolderKey = folderKey
         } catch let error as DictionaryAudioRecorderError {
@@ -174,6 +194,7 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
         activeWordID = nil
         activeFolderKey = nil
         isRecording = false
+        isPaused = false
         recordingWordID = nil
         recordingFolderKey = nil
 
@@ -194,6 +215,7 @@ extension DictionaryAudioRecorderService: AVAudioRecorderDelegate {
             self.activeWordID = nil
             self.activeFolderKey = nil
             self.isRecording = false
+            self.isPaused = false
             self.recordingWordID = nil
             self.recordingFolderKey = nil
         }

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 @MainActor
 final class VocabularyStore: ObservableObject {
@@ -141,6 +142,7 @@ final class VocabularyStore: ObservableObject {
 
     func remove(_ card: VocabularyCard) {
         DictionaryAudioStorage.deleteRecording(for: card.id)
+        DictionaryImageStorage.deleteImage(for: card.id)
         cards.removeAll { $0.id == card.id }
         persist()
     }
@@ -149,6 +151,7 @@ final class VocabularyStore: ObservableObject {
         guard !ids.isEmpty else { return }
         for id in ids {
             DictionaryAudioStorage.deleteRecording(for: id)
+            DictionaryImageStorage.deleteImage(for: id)
         }
         cards.removeAll { ids.contains($0.id) }
         persist()
@@ -180,9 +183,28 @@ final class VocabularyStore: ObservableObject {
     func remove(at offsets: IndexSet) {
         for index in offsets {
             DictionaryAudioStorage.deleteRecording(for: cards[index].id)
+            DictionaryImageStorage.deleteImage(for: cards[index].id)
         }
         cards.remove(atOffsets: offsets)
         persist()
+    }
+
+    func hasImage(for cardID: UUID) -> Bool {
+        DictionaryImageStorage.imageExists(for: cardID)
+    }
+
+    func image(for cardID: UUID) -> UIImage? {
+        DictionaryImageStorage.loadImage(for: cardID)
+    }
+
+    func setImage(_ image: UIImage, for cardID: UUID) throws {
+        try DictionaryImageStorage.saveImage(image, for: cardID)
+        objectWillChange.send()
+    }
+
+    func clearImage(for cardID: UUID) {
+        DictionaryImageStorage.deleteImage(for: cardID)
+        objectWillChange.send()
     }
 
     func hasRecording(for cardID: UUID) -> Bool {

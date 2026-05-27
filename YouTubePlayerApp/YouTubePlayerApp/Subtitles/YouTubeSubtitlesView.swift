@@ -9,18 +9,13 @@ struct YouTubeSubtitlesView: View {
     let folderKey: String?
     let folderTitle: String?
     let interactionToken: Int
+    @Binding var activeWord: ActiveSubtitleWord?
     @Binding var translationPreview: String?
     @Binding var isTranslating: Bool
     let onTimestampTap: ((YouTubeSubtitleLine) -> Void)?
-    let onWordTranslated: (WordTranslationEntry) -> Void
     let onTranslationError: (String) -> Void
 
-    @EnvironmentObject private var vocabularyStore: VocabularyStore
-    @EnvironmentObject private var appSettings: AppSettings
-
     @State private var userScrollUntil: Date = .distantPast
-    @State private var activeWord: ActiveSubtitleWord?
-    @State private var savedPreviewWordKey: String?
 
     init(
         lines: [YouTubeSubtitleLine],
@@ -30,10 +25,10 @@ struct YouTubeSubtitlesView: View {
         folderKey: String? = nil,
         folderTitle: String? = nil,
         interactionToken: Int = 0,
+        activeWord: Binding<ActiveSubtitleWord?>,
         translationPreview: Binding<String?>,
         isTranslating: Binding<Bool>,
         onTimestampTap: ((YouTubeSubtitleLine) -> Void)? = nil,
-        onWordTranslated: @escaping (WordTranslationEntry) -> Void,
         onTranslationError: @escaping (String) -> Void
     ) {
         self.lines = lines
@@ -43,10 +38,10 @@ struct YouTubeSubtitlesView: View {
         self.folderKey = folderKey
         self.folderTitle = folderTitle
         self.interactionToken = interactionToken
+        self._activeWord = activeWord
         self._translationPreview = translationPreview
         self._isTranslating = isTranslating
         self.onTimestampTap = onTimestampTap
-        self.onWordTranslated = onWordTranslated
         self.onTranslationError = onTranslationError
     }
 
@@ -54,10 +49,6 @@ struct YouTubeSubtitlesView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
-                    if let translationPreview {
-                        translationPreviewBar(translationPreview)
-                    }
-
                     ForEach(lines) { line in
                         subtitleRow(for: line)
                             .id(line.id)
@@ -87,72 +78,6 @@ struct YouTubeSubtitlesView: View {
             return current.id
         }
         return lines.last(where: { playbackSec >= $0.endSec })?.id
-    }
-
-    @ViewBuilder
-    private func translationPreviewBar(_ text: String) -> some View {
-        HStack(spacing: 8) {
-            if isTranslating {
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(PortTheme.accent)
-            }
-            Text(text)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(PortTheme.heading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let entry = translationEntry(from: text) {
-                if vocabularyStore.contains(source: entry.source) || savedPreviewWordKey == entry.source {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.body)
-                        .foregroundStyle(PortTheme.accent)
-                } else {
-                    Button {
-                        addToVocabulary(entry)
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.body)
-                            .foregroundStyle(PortTheme.accent)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(appSettings.strings.addToDictionary)
-                }
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(PortTheme.accentSoft)
-        .clipShape(RoundedRectangle(cornerRadius: PortTheme.radiusMD, style: .continuous))
-        .onChange(of: activeWord) { _ in
-            savedPreviewWordKey = nil
-        }
-    }
-
-    private func translationEntry(from preview: String) -> WordTranslationEntry? {
-        guard !isTranslating else { return nil }
-        guard let range = preview.rangeOfTranslationSeparator else { return nil }
-        let translation = String(preview[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !translation.isEmpty, translation != "…" else { return nil }
-
-        let source = activeWord?.lookupKey
-            ?? String(preview[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !source.isEmpty else { return nil }
-
-        return WordTranslationEntry(source: source, translation: translation)
-    }
-
-    private func addToVocabulary(_ entry: WordTranslationEntry) {
-        vocabularyStore.add(
-            source: entry.source,
-            translation: entry.translation,
-            sourceLanguage: sourceLanguage,
-            bookTitle: folderTitle,
-            folderKey: folderKey,
-            folderTitle: folderTitle
-        )
-        savedPreviewWordKey = entry.source
-        onWordTranslated(entry)
     }
 
     @ViewBuilder
@@ -229,9 +154,9 @@ struct YouTubeSubtitlesView_Previews: PreviewProvider {
             sourceLanguage: "pt",
             translatedKeys: ["olá"],
             interactionToken: 0,
+            activeWord: .constant(nil),
             translationPreview: .constant("Olá — hello"),
             isTranslating: .constant(false),
-            onWordTranslated: { _ in },
             onTranslationError: { _ in }
         )
         .padding()

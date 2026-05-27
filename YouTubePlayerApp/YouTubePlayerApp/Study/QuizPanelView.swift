@@ -4,6 +4,8 @@ import SwiftUI
 struct QuizPanelView: View {
     @EnvironmentObject private var vocabularyStore: VocabularyStore
     @EnvironmentObject private var learningStats: LearningStatsStore
+    @EnvironmentObject private var studySelection: StudyWordSelectionStore
+    @EnvironmentObject private var appSettings: AppSettings
 
     @State private var mode: QuizMode = .multipleChoice
     @State private var direction: QuizDirection = .ptToRu
@@ -16,15 +18,21 @@ struct QuizPanelView: View {
     @State private var options: [VocabularyCard] = []
     @State private var sessionComplete = false
 
+    private var strings: AppStrings { appSettings.strings }
+
+    private var quizCards: [VocabularyCard] {
+        studySelection.filterCards(vocabularyStore.cards)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             controls
 
-            if vocabularyStore.cards.isEmpty {
+            if quizCards.isEmpty {
                 emptyState
             } else if sessionComplete {
                 completeState
-            } else if mode == .multipleChoice, vocabularyStore.cards.count < 4 {
+            } else if mode == .multipleChoice, quizCards.count < 4 {
                 needMoreWordsState
             } else {
                 questionBlock
@@ -37,23 +45,30 @@ struct QuizPanelView: View {
         .onDisappear {
             learningStats.endStudySession()
         }
+        .onChange(of: studySelection.disabledCardIDs) { _ in
+            restartSession()
+        }
     }
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Picker("Режим", selection: $mode) {
-                Text("4 варианта").tag(QuizMode.multipleChoice)
-                Text("Ввод").tag(QuizMode.typedInput)
+            Picker(strings.quizMode, selection: $mode) {
+                Text(strings.multipleChoice).tag(QuizMode.multipleChoice)
+                Text(strings.typedInput).tag(QuizMode.typedInput)
             }
             .pickerStyle(.segmented)
             .onChange(of: mode) { _ in restartSession() }
 
-            Picker("Направление", selection: $direction) {
+            Picker(strings.quizDirection, selection: $direction) {
                 Text("PT → RU").tag(QuizDirection.ptToRu)
                 Text("RU → PT").tag(QuizDirection.ruToPt)
             }
             .pickerStyle(.segmented)
             .onChange(of: direction) { _ in restartSession() }
+
+            Text(strings.quizUsesSelectedWords(quizCards.count))
+                .font(.caption)
+                .foregroundStyle(PortTheme.textMuted)
         }
     }
 
@@ -61,16 +76,26 @@ struct QuizPanelView: View {
     private var questionBlock: some View {
         if let card = currentCard {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Вопрос \(currentIndex + 1) из \(order.count) · верно: \(score)")
+                Text(strings.quizProgress(currentIndex + 1, total: order.count, score: score))
                     .font(.caption)
                     .foregroundStyle(PortTheme.textMuted)
 
-                Text(prompt(for: card))
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(PortTheme.heading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(20)
-                    .portCard()
+                HStack(alignment: .top, spacing: 12) {
+                    Text(prompt(for: card))
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(PortTheme.heading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if vocabularyStore.hasImage(for: card.id) {
+                        VocabularyCardImageView(
+                            cardID: card.id,
+                            style: .thumbnail,
+                            image: vocabularyStore.image(for: card.id)
+                        )
+                    }
+                }
+                .padding(20)
+                .portCard()
 
                 if mode == .multipleChoice {
                     VStack(spacing: 8) {
@@ -92,7 +117,7 @@ struct QuizPanelView: View {
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
-                        TextField(direction == .ptToRu ? "Перевод по-русски" : "Ответ по-португальски", text: $typedAnswer)
+                        TextField(direction == .ptToRu ? strings.typeRussianAnswer : strings.typePortugueseAnswer, text: $typedAnswer)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .padding(12)
@@ -100,7 +125,7 @@ struct QuizPanelView: View {
                             .clipShape(RoundedRectangle(cornerRadius: PortTheme.radiusMD, style: .continuous))
                             .disabled(answered)
 
-                        Button("Проверить") {
+                        Button(strings.checkAnswer) {
                             checkTypedAnswer(for: card)
                         }
                         .buttonStyle(.borderedProminent)
@@ -112,7 +137,7 @@ struct QuizPanelView: View {
                 if !feedback.isEmpty {
                     Text(feedback)
                         .font(.subheadline)
-                        .foregroundStyle(feedback.hasPrefix("Верно") ? PortTheme.successText : PortTheme.danger)
+                        .foregroundStyle(feedback.hasPrefix(strings.correctPrefix) ? PortTheme.successText : PortTheme.danger)
                 }
             }
         }
@@ -120,10 +145,10 @@ struct QuizPanelView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Недостаточно слов")
+            Text(strings.notEnoughWords)
                 .font(.headline)
                 .foregroundStyle(PortTheme.heading)
-            Text("Добавьте слова из видео или читалки, чтобы проходить квиз.")
+            Text(strings.quizEmptyHint)
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
         }
@@ -133,10 +158,10 @@ struct QuizPanelView: View {
 
     private var needMoreWordsState: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Нужно минимум 4 слова")
+            Text(strings.needFourWords)
                 .font(.headline)
                 .foregroundStyle(PortTheme.heading)
-            Text("Для режима «4 варианта» добавьте больше слов или выберите «Ввод».")
+            Text(strings.needFourWordsHint)
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
         }
@@ -146,13 +171,13 @@ struct QuizPanelView: View {
 
     private var completeState: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Сессия завершена")
+            Text(strings.sessionComplete)
                 .font(.title3.bold())
                 .foregroundStyle(PortTheme.heading)
-            Text("Правильных ответов: \(score) из \(order.count)")
+            Text(strings.sessionScore(score, total: order.count))
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
-            Button("Ещё раз") {
+            Button(strings.tryAgain) {
                 restartSession()
             }
             .buttonStyle(.borderedProminent)
@@ -165,16 +190,16 @@ struct QuizPanelView: View {
     private var currentCard: VocabularyCard? {
         guard currentIndex < order.count else { return nil }
         let id = order[currentIndex]
-        return vocabularyStore.cards.first { $0.id == id }
+        return quizCards.first { $0.id == id }
     }
 
     private func startSessionIfNeeded() {
-        guard order.isEmpty, !vocabularyStore.cards.isEmpty else { return }
+        guard order.isEmpty, !quizCards.isEmpty else { return }
         restartSession()
     }
 
     private func restartSession() {
-        order = vocabularyStore.cards.map(\.id).shuffled()
+        order = quizCards.map(\.id).shuffled()
         currentIndex = 0
         score = 0
         answered = false
@@ -189,9 +214,10 @@ struct QuizPanelView: View {
         answered = false
         feedback = ""
         typedAnswer = ""
+        learningStats.recordQuizPresentation(cardID: card.id)
 
         if mode == .multipleChoice {
-            let pool = vocabularyStore.cards.filter { $0.id != card.id }.shuffled()
+            let pool = quizCards.filter { $0.id != card.id }.shuffled()
             let distractors = Array(pool.prefix(3))
             options = ([card] + distractors).shuffled()
         }
@@ -202,8 +228,10 @@ struct QuizPanelView: View {
         answered = true
         let isCorrect = option.id == correct.id
         if isCorrect { score += 1 }
-        learningStats.recordQuizAnswer(correct: isCorrect)
-        feedback = isCorrect ? "Верно!" : "Неверно. Правильно: \(optionLabel(for: correct))"
+        learningStats.recordQuizAnswer(cardID: correct.id, correct: isCorrect)
+        feedback = isCorrect
+            ? strings.correctFeedback
+            : strings.incorrectFeedback(optionLabel(for: correct))
         scheduleAdvance()
     }
 
@@ -213,8 +241,8 @@ struct QuizPanelView: View {
         let expected = expectedAnswer(for: card)
         let isCorrect = Self.answersMatch(typedAnswer, expected)
         if isCorrect { score += 1 }
-        learningStats.recordQuizAnswer(correct: isCorrect)
-        feedback = isCorrect ? "Верно!" : "Ожидалось: \(expected)"
+        learningStats.recordQuizAnswer(cardID: card.id, correct: isCorrect)
+        feedback = isCorrect ? strings.correctFeedback : strings.expectedAnswer(expected)
         scheduleAdvance()
     }
 
@@ -277,6 +305,8 @@ struct QuizPanelView_Previews: PreviewProvider {
         QuizPanelView()
             .environmentObject(VocabularyStore())
             .environmentObject(LearningStatsStore())
+            .environmentObject(StudyWordSelectionStore())
+            .environmentObject(AppSettings())
             .padding()
             .background(PortTheme.background)
     }

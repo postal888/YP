@@ -6,12 +6,17 @@ struct VocabularyCardEditSheet: View {
     let onSave: (String, String, String?) -> Void
 
     @EnvironmentObject private var vocabularyStore: VocabularyStore
+    @EnvironmentObject private var learningStats: LearningStatsStore
     @EnvironmentObject private var appSettings: AppSettings
     @Environment(\.presentationMode) private var presentationMode
 
     @State private var source: String
     @State private var translation: String
     @State private var example: String
+    @State private var showImagePicker = false
+    @State private var previewImage: UIImage?
+
+    private var strings: AppStrings { appSettings.strings }
 
     init(card: VocabularyCard, onSave: @escaping (String, String, String?) -> Void) {
         self.card = card
@@ -25,12 +30,11 @@ struct VocabularyCardEditSheet: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    field(title: "Слово", text: $source)
-                    field(title: "Перевод", text: $translation)
-                    field(title: "Пример", text: $example)
+                    cardEditorSection
+                    CardStatsBar(stats: learningStats.stats(for: card.id), strings: strings)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Диктофон")
+                        Text(strings.dictaphone)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PortTheme.textMuted)
 
@@ -46,16 +50,16 @@ struct VocabularyCardEditSheet: View {
                 .padding(16)
             }
             .background(PortTheme.background.ignoresSafeArea())
-            .navigationTitle("Редактировать")
+            .navigationTitle(strings.editCard)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") {
+                    Button(strings.cancel) {
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
+                    Button(strings.done) {
                         let trimmedExample = example.trimmingCharacters(in: .whitespacesAndNewlines)
                         onSave(source, translation, trimmedExample.isEmpty ? nil : trimmedExample)
                         presentationMode.wrappedValue.dismiss()
@@ -64,8 +68,59 @@ struct VocabularyCardEditSheet: View {
                         || translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .sheet(isPresented: $showImagePicker) {
+                ImagePickerView { image in
+                    previewImage = image
+                    try? vocabularyStore.setImage(image, for: card.id)
+                }
+            }
+            .onAppear {
+                previewImage = vocabularyStore.image(for: card.id)
+            }
         }
         .navigationViewStyle(.stack)
+    }
+
+    private var cardEditorSection: some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
+                field(title: strings.wordLabel, text: $source)
+                field(title: strings.translationLabel, text: $translation)
+                field(title: strings.exampleLabel, text: $example)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(spacing: 10) {
+                VocabularyCardImageView(
+                    cardID: card.id,
+                    style: .card,
+                    image: previewImage
+                )
+
+                Button {
+                    showImagePicker = true
+                } label: {
+                    Label(strings.addImage, systemImage: "photo.on.rectangle")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
+
+                if previewImage != nil {
+                    Button(role: .destructive) {
+                        previewImage = nil
+                        vocabularyStore.clearImage(for: card.id)
+                    } label: {
+                        Label(strings.removeImage, systemImage: "trash")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
+                }
+            }
+            .frame(width: 132)
+        }
+        .padding(16)
+        .frame(minHeight: 168)
+        .portCard()
     }
 
     private func field(title: String, text: Binding<String>) -> some View {
@@ -88,9 +143,11 @@ struct VocabularyCardEditSheet: View {
 struct VocabularyCardEditSheet_Previews: PreviewProvider {
     static var previews: some View {
         VocabularyCardEditSheet(
-            card: VocabularyCard(source: "obrigado", translation: "спасибо", sourceLanguage: "pt")
+            card: VocabularyCard(source: "obrigado", translation: "thank you", sourceLanguage: "pt")
         ) { _, _, _ in }
         .environmentObject(VocabularyStore())
+        .environmentObject(LearningStatsStore())
+        .environmentObject(AppSettings())
     }
 }
 #endif

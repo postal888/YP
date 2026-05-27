@@ -10,6 +10,7 @@ final class AppSettings: ObservableObject {
         static let backendURL = "portulearn.settings.backendBaseURL"
         static let backgroundVideoPlayback = "portulearn.settings.backgroundVideoPlayback"
         static let appLanguage = "portulearn.settings.appLanguage"
+        static let readerFontScale = "portulearn.settings.readerFontScale"
     }
 
     @Published var useChatGPTTranslation: Bool {
@@ -35,10 +36,23 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: Keys.appLanguage) }
     }
 
+    @Published var readerFontScale: Double {
+        didSet {
+            let clamped = min(max(readerFontScale, 0.85), 1.6)
+            if clamped != readerFontScale {
+                readerFontScale = clamped
+                return
+            }
+            UserDefaults.standard.set(clamped, forKey: Keys.readerFontScale)
+        }
+    }
+
     init() {
         useChatGPTTranslation = UserDefaults.standard.bool(forKey: Keys.useChatGPT)
         backendBaseURL = UserDefaults.standard.string(forKey: Keys.backendURL) ?? Self.defaultBackendURL
         backgroundVideoPlayback = UserDefaults.standard.bool(forKey: Keys.backgroundVideoPlayback)
+        let storedFontScale = UserDefaults.standard.object(forKey: Keys.readerFontScale) as? Double ?? 1.0
+        readerFontScale = min(max(storedFontScale, 0.85), 1.6)
         if
             let raw = UserDefaults.standard.string(forKey: Keys.appLanguage),
             let language = AppLanguage(rawValue: raw)

@@ -30,6 +30,8 @@ struct LessonPlayerView: View {
     @State private var isTranslatingWord = false
     @State private var subtitleRefreshID = 0
     @State private var recentTranslations: [WordTranslationEntry] = []
+    @State private var activeSubtitleWord: ActiveSubtitleWord?
+    @State private var isSubtitleLanguageExpanded = true
 
     var body: some View {
         ScrollView {
@@ -38,6 +40,7 @@ struct LessonPlayerView: View {
                 playerSection
                 transportControls
                 languagePicker
+                translationPreviewPanel
                 subtitlesSection
                 if lessonCompleted {
                     completionBadge
@@ -59,6 +62,7 @@ struct LessonPlayerView: View {
             subtitleRefreshID += 1
             translationPreview = nil
             isTranslatingWord = false
+            activeSubtitleWord = nil
         }
         .task(id: transcriptKey) {
             await loadSubtitlesIfNeeded()
@@ -208,20 +212,55 @@ struct LessonPlayerView: View {
 
     private var languagePicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(strings.subtitleLanguage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(PortTheme.textSubtle)
-
-            ScrollView(.horizontal, showsIndicators: false) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isSubtitleLanguageExpanded.toggle()
+                }
+            } label: {
                 HStack(spacing: 8) {
-                    ForEach(YouTubeSubtitleLanguage.allCases) { language in
-                        Button(language.label) {
-                            selectedLanguage = language
+                    Text(strings.subtitleLanguage)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PortTheme.textSubtle)
+                    Spacer()
+                    Text(selectedLanguage.label)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(PortTheme.textMuted)
+                    Image(systemName: isSubtitleLanguageExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PortTheme.textMuted)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if isSubtitleLanguageExpanded {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(YouTubeSubtitleLanguage.allCases) { language in
+                            Button(language.label) {
+                                selectedLanguage = language
+                            }
+                            .buttonStyle(PortChipButtonStyle(isSelected: selectedLanguage == language))
                         }
-                        .buttonStyle(PortChipButtonStyle(isSelected: selectedLanguage == language))
                     }
                 }
             }
+        }
+        .padding(14)
+        .portCard()
+    }
+
+    @ViewBuilder
+    private var translationPreviewPanel: some View {
+        if translationPreview != nil || isTranslatingWord {
+            SubtitleTranslationPreviewBar(
+                translationPreview: $translationPreview,
+                isTranslating: $isTranslatingWord,
+                activeWord: $activeSubtitleWord,
+                sourceLanguage: selectedLanguage.rawValue,
+                folderKey: VocabularyFolderKey.youtube(videoID),
+                folderTitle: session.selectedVideoTitle,
+                onWordAdded: rememberTranslation
+            )
         }
     }
 
@@ -266,14 +305,12 @@ struct LessonPlayerView: View {
                     folderKey: VocabularyFolderKey.youtube(videoID),
                     folderTitle: session.selectedVideoTitle,
                     interactionToken: subtitleRefreshID,
+                    activeWord: $activeSubtitleWord,
                     translationPreview: $translationPreview,
                     isTranslating: $isTranslatingWord,
                     onTimestampTap: { line in
                         playerHolder.seek(to: line.startSec)
                         playerHolder.play()
-                    },
-                    onWordTranslated: { entry in
-                        rememberTranslation(entry)
                     },
                     onTranslationError: { message in
                         errorLog.add(source: "Translate", message: message)

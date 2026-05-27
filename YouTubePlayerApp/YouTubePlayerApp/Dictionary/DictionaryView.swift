@@ -10,7 +10,7 @@ struct DictionaryView: View {
     @State private var searchText = ""
     @State private var editingCard: VocabularyCard?
     @State private var recordingSession: DictionaryRecordingSession?
-    @State private var folderRecordingSession: DictionaryFolderRecordingSession?
+    @StateObject private var folderRecordingController = DictionaryFolderRecordingController()
     @State private var renamingFolder: VocabularyFolderGroup?
     @State private var expandedFolderKeys: Set<String> = []
     @State private var csvShareItem: ShareableFile?
@@ -65,16 +65,14 @@ struct DictionaryView: View {
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.bottom, isSelectionMode && !selectedCardIDs.isEmpty ? 96 : 24)
+                        .padding(.bottom, bottomScrollPadding)
                     }
                 }
             }
             .background(PortTheme.background.ignoresSafeArea())
             .navigationBarHidden(true)
             .safeAreaInset(edge: .bottom) {
-                if isSelectionMode && !selectedCardIDs.isEmpty {
-                    selectionToolbar
-                }
+                bottomInsetContent
             }
             .sheet(item: $editingCard) { card in
                 VocabularyCardEditSheet(card: card) { source, translation, example in
@@ -88,12 +86,15 @@ struct DictionaryView: View {
                     appSettings: appSettings
                 )
             }
-            .sheet(item: $folderRecordingSession) { session in
-                DictionaryFolderRecorderPanel(
-                    session: session,
-                    vocabularyStore: vocabularyStore,
-                    appSettings: appSettings
-                )
+            .sheet(isPresented: folderRecorderSheetBinding) {
+                if let viewModel = folderRecordingController.viewModel {
+                    DictionaryFolderRecorderPanel(
+                        viewModel: viewModel,
+                        onMinimize: { folderRecordingController.minimize() },
+                        onClose: { folderRecordingController.dismiss() }
+                    )
+                    .environmentObject(appSettings)
+                }
             }
             .sheet(item: $renamingFolder) { folder in
                 VocabularyFolderRenameSheet(
@@ -137,6 +138,46 @@ struct DictionaryView: View {
             }
         }
         .navigationViewStyle(.stack)
+    }
+
+    private var bottomScrollPadding: CGFloat {
+        var padding: CGFloat = 24
+        if folderRecordingController.isMinimized {
+            padding = 96
+        }
+        if isSelectionMode && !selectedCardIDs.isEmpty {
+            padding += 72
+        }
+        return padding
+    }
+
+    private var folderRecorderSheetBinding: Binding<Bool> {
+        Binding(
+            get: { folderRecordingController.isSheetPresented },
+            set: { presented in
+                if !presented, folderRecordingController.isActive {
+                    folderRecordingController.minimize()
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var bottomInsetContent: some View {
+        VStack(spacing: 0) {
+            if folderRecordingController.isMinimized,
+               let viewModel = folderRecordingController.viewModel {
+                DictionaryFolderRecordingMiniBar(
+                    viewModel: viewModel,
+                    onExpand: { folderRecordingController.expand() }
+                )
+                .environmentObject(appSettings)
+            }
+
+            if isSelectionMode && !selectedCardIDs.isEmpty {
+                selectionToolbar
+            }
+        }
     }
 
     private var header: some View {
@@ -462,9 +503,13 @@ struct DictionaryView: View {
 
     private func openFolderRecorder(for folder: VocabularyFolderGroup) {
         let playbackCards = cardsForFolderPlayback(folder)
-        folderRecordingSession = DictionaryFolderRecordingSession(
-            folder: folder,
-            playbackCards: playbackCards
+        folderRecordingController.present(
+            session: DictionaryFolderRecordingSession(
+                folder: folder,
+                playbackCards: playbackCards
+            ),
+            vocabularyStore: vocabularyStore,
+            appSettings: appSettings
         )
     }
 
@@ -498,7 +543,16 @@ struct DictionaryView: View {
                         editingCard = card
                     }
                 } label: {
-                    VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .top, spacing: 10) {
+                        if vocabularyStore.hasImage(for: card.id) {
+                            VocabularyCardImageView(
+                                cardID: card.id,
+                                style: .thumbnail,
+                                image: vocabularyStore.image(for: card.id)
+                            )
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text(card.source)
                                 .font(.headline)
@@ -537,6 +591,7 @@ struct DictionaryView: View {
                             Text(card.createdAt, style: .date)
                                 .font(.caption2)
                                 .foregroundStyle(PortTheme.textMuted)
+                        }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
