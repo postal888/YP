@@ -55,7 +55,6 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
         guard granted else { throw DictionaryAudioRecorderError.permissionDenied }
 
         DictionaryAudioPlayerService.shared.stop()
-        WordTTSService.shared.stop()
 
         do {
             let session = AVAudioSession.sharedInstance()

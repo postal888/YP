@@ -143,6 +143,19 @@ final class VocabularyStore: ObservableObject {
         persist()
     }
 
+    func remove(ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+        for id in ids {
+            DictionaryAudioStorage.deleteRecording(for: id)
+        }
+        cards.removeAll { ids.contains($0.id) }
+        persist()
+    }
+
+    func cards(withIDs ids: Set<UUID>) -> [VocabularyCard] {
+        cards.filter { ids.contains($0.id) }
+    }
+
     func remove(at offsets: IndexSet) {
         for index in offsets {
             DictionaryAudioStorage.deleteRecording(for: cards[index].id)

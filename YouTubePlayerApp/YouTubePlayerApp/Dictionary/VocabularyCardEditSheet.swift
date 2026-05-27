@@ -6,6 +6,7 @@ struct VocabularyCardEditSheet: View {
     let onSave: (String, String, String?) -> Void
 
     @EnvironmentObject private var vocabularyStore: VocabularyStore
+    @EnvironmentObject private var appSettings: AppSettings
     @Environment(\.presentationMode) private var presentationMode
 
     @State private var source: String
@@ -36,6 +37,8 @@ struct VocabularyCardEditSheet: View {
                         DictionaryWordRecorderContent(
                             card: card,
                             vocabularyStore: vocabularyStore,
+                            playbackCards: [],
+                            appSettings: appSettings,
                             showsWordHeader: false
                         )
                     }

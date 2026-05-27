@@ -6,15 +6,24 @@ struct DictionaryWordRecorderContent: View {
     @StateObject private var viewModel: DictionaryWordRecordingViewModel
     @ObservedObject private var playerService = DictionaryAudioPlayerService.shared
     @ObservedObject private var recorderService = DictionaryAudioRecorderService.shared
+    @ObservedObject private var ttsService = WordTTSService.shared
 
     private let showsWordHeader: Bool
 
-    init(card: VocabularyCard, vocabularyStore: VocabularyStore, showsWordHeader: Bool = true) {
+    init(
+        card: VocabularyCard,
+        vocabularyStore: VocabularyStore,
+        playbackCards: [VocabularyCard],
+        appSettings: AppSettings,
+        showsWordHeader: Bool = true
+    ) {
         self.showsWordHeader = showsWordHeader
         _viewModel = StateObject(
             wrappedValue: DictionaryWordRecordingViewModel(
                 card: card,
-                vocabularyStore: vocabularyStore
+                vocabularyStore: vocabularyStore,
+                playbackCards: playbackCards,
+                appSettings: appSettings
             )
         )
     }
@@ -23,6 +32,9 @@ struct DictionaryWordRecorderContent: View {
         VStack(alignment: .leading, spacing: 16) {
             if showsWordHeader {
                 wordHeader
+            }
+            if viewModel.playbackCount > 0 {
+                ttsOptions
             }
             recorderControls
         }
@@ -87,6 +99,31 @@ struct DictionaryWordRecorderContent: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .portCard()
+    }
+
+    private var ttsOptions: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: $viewModel.speakDuringRecording) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Озвучить выбранные слова")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PortTheme.heading)
+                    Text("\(viewModel.playbackCount) слов · слово и перевод")
+                        .font(.caption)
+                        .foregroundStyle(PortTheme.textMuted)
+                }
+            }
+            .tint(PortTheme.accent)
+            .disabled(viewModel.phase == .recording)
+
+            if viewModel.phase == .recording, ttsService.isPlaying {
+                Label("Идёт озвучивание…", systemImage: "speaker.wave.2.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PortTheme.accent)
+            }
+        }
         .padding(14)
         .portCard()
     }
@@ -206,16 +243,22 @@ struct DictionaryWordRecorderContent: View {
 
 @MainActor
 struct DictionaryWordRecorderPanel: View {
-    let card: VocabularyCard
+    let session: DictionaryRecordingSession
     let vocabularyStore: VocabularyStore
+    let appSettings: AppSettings
 
     @Environment(\.presentationMode) private var presentationMode
 
     var body: some View {
         NavigationView {
             ScrollView {
-                DictionaryWordRecorderContent(card: card, vocabularyStore: vocabularyStore)
-                    .padding(16)
+                DictionaryWordRecorderContent(
+                    card: session.card,
+                    vocabularyStore: vocabularyStore,
+                    playbackCards: session.playbackCards,
+                    appSettings: appSettings
+                )
+                .padding(16)
             }
             .background(PortTheme.background.ignoresSafeArea())
             .navigationTitle("Диктофон")
@@ -248,8 +291,12 @@ struct DictionaryRecorderSecondaryButtonStyle: ButtonStyle {
 struct DictionaryWordRecorderPanel_Previews: PreviewProvider {
     static var previews: some View {
         DictionaryWordRecorderPanel(
-            card: VocabularyCard(source: "obrigado", translation: "спасибо", sourceLanguage: "pt"),
-            vocabularyStore: VocabularyStore()
+            session: DictionaryRecordingSession(
+                card: VocabularyCard(source: "obrigado", translation: "спасибо", sourceLanguage: "pt"),
+                playbackCards: []
+            ),
+            vocabularyStore: VocabularyStore(),
+            appSettings: AppSettings()
         )
     }
 }

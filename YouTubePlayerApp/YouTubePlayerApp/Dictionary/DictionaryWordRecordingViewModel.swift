@@ -1,15 +1,32 @@
 import Foundation
 
-enum DictionaryWordRecorderPhase: Equatable {
-    case idle
-    case recording
-    case recorded
+struct DictionaryRecordingSession: Identifiable {
+    let card: VocabularyCard
+    let playbackCards: [VocabularyCard]
+
+    var id: UUID { card.id }
+}
+
+extension DictionaryWordRecordingViewModel {
+    static func ttsEntries(for cards: [VocabularyCard]) -> [TTSQueueEntry] {
+        cards.flatMap { card in
+            [
+                TTSQueueEntry(text: card.source, languageCode: card.sourceLanguage, cardID: card.id),
+                TTSQueueEntry(text: card.translation, languageCode: fallbackTranslationLanguage(for: card.sourceLanguage), cardID: card.id)
+            ]
+        }
+    }
+
+    private static func fallbackTranslationLanguage(for sourceLanguage: String) -> String {
+        sourceLanguage.lowercased() == "ru" ? "en" : "ru"
+    }
 }
 
 @MainActor
 final class DictionaryWordRecordingViewModel: ObservableObject {
     @Published private(set) var phase: DictionaryWordRecorderPhase = .idle
     @Published private(set) var recordingDuration: TimeInterval = 0
+    @Published var speakDuringRecording: Bool
     @Published var showDeleteConfirmation = false
     @Published var showExportOptions = false
     @Published var showAlert = false
@@ -18,23 +35,36 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
     @Published var shareItem: ShareableFile?
 
     private let card: VocabularyCard
+    private let playbackCards: [VocabularyCard]
     private let vocabularyStore: VocabularyStore
+    private let appSettings: AppSettings
     private let recorderService: DictionaryAudioRecorderService
     private let playerService: DictionaryAudioPlayerService
     private let exportService: DictionaryAudioExportService
+    private let ttsService: WordTTSService
 
-    init(card: VocabularyCard, vocabularyStore: VocabularyStore) {
+    init(
+        card: VocabularyCard,
+        vocabularyStore: VocabularyStore,
+        playbackCards: [VocabularyCard],
+        appSettings: AppSettings
+    ) {
         self.card = card
+        self.playbackCards = playbackCards
         self.vocabularyStore = vocabularyStore
+        self.appSettings = appSettings
+        self.speakDuringRecording = !playbackCards.isEmpty
         self.recorderService = DictionaryAudioRecorderService.shared
         self.playerService = DictionaryAudioPlayerService.shared
         self.exportService = DictionaryAudioExportService.shared
+        self.ttsService = WordTTSService.shared
         syncPhaseFromStore()
     }
 
     var cardSource: String { card.source }
     var cardTranslation: String { card.translation }
     var cardID: UUID { card.id }
+    var playbackCount: Int { playbackCards.count }
     var hasRecording: Bool { vocabularyStore.hasRecording(for: card.id) }
     var isRecordingThisCard: Bool { recorderService.isRecording && recorderService.recordingWordID == card.id }
     var isPlayingThisCard: Bool { playerService.isPlaying && playerService.playingWordID == card.id }
@@ -56,6 +86,10 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
             do {
                 try await recorderService.startRecording(for: card.id)
                 phase = .recording
+                if speakDuringRecording, !playbackCards.isEmpty {
+                    let entries = Self.ttsEntries(for: playbackCards)
+                    ttsService.speakSequence(entries, settings: appSettings, allowDuringRecording: true)
+                }
             } catch DictionaryAudioRecorderError.permissionDenied {
                 showAlert = true
                 alertTitle = "Нет доступа к микрофону"
@@ -67,6 +101,7 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
     }
 
     func stopRecording() {
+        ttsService.stop()
         do {
             let result = try recorderService.stopRecording()
             vocabularyStore.setRecording(
@@ -125,6 +160,7 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
     }
 
     func cleanupOnDismiss() {
+        ttsService.stop()
         if isRecordingThisCard {
             recorderService.cancelRecording(for: card.id)
         }
@@ -138,4 +174,10 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
         alertMessage = error.localizedDescription
         showAlert = true
     }
+}
+
+enum DictionaryWordRecorderPhase: Equatable {
+    case idle
+    case recording
+    case recorded
 }
