@@ -59,8 +59,8 @@ struct PDFKitReaderView: UIViewRepresentable {
             guard let page = pdfView.page(for: location, nearest: true) else { return }
 
             let pagePoint = pdfView.convert(location, to: page)
-            guard let selection = page.selection(forWordAt: pagePoint),
-                  let rawWord = selection.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+            guard let selection = page.selectionForWord(at: pagePoint),
+                  let rawWord = selection.string?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
                   !rawWord.isEmpty else {
                 return
             }
