@@ -42,8 +42,8 @@ actor YouTubeSearchService {
         self.session = session
     }
 
-    func search(query: String) async throws -> [YouTubeSearchResult] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+    func search(query: String, filter: YouTubeSearchFilter = .video) async throws -> YouTubeSearchResponse {
+        let trimmed = query.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw YouTubeSearchError.emptyQuery }
 
         var request = URLRequest(url: searchURL, timeoutInterval: 15)
@@ -54,7 +54,7 @@ actor YouTubeSearchService {
             forHTTPHeaderField: "User-Agent"
         )
 
-        let body: [String: Any] = [
+        var params: [String: Any] = [
             "context": [
                 "client": [
                     "clientName": "ANDROID",
@@ -65,7 +65,12 @@ actor YouTubeSearchService {
             ],
             "query": trimmed
         ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        if filter == .channel {
+            params["params"] = "EgIQAg=="
+        }
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: params)
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
@@ -75,45 +80,165 @@ actor YouTubeSearchService {
             throw YouTubeSearchError.network("YouTube вернул HTTP \(http.statusCode).")
         }
 
-        guard
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else {
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw YouTubeSearchError.parseFailed
         }
 
-        let renderers = collectVideoRenderers(from: json)
-        var seen = Set<String>()
-        var results: [YouTubeSearchResult] = []
+        return parseSearchResponse(json, filter: filter)
+    }
 
-        for renderer in renderers {
-            guard let parsed = parseVideoRenderer(renderer), !seen.contains(parsed.videoID) else {
-                continue
+    func fetchQuerySuggestions(query: String) async -> [String] {
+        let trimmed = query.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        guard trimmed.count >= 2 else { return [] }
+
+        guard var components = URLComponents(string: "https://clients1.google.com/complete/search") else {
+            return []
+        }
+        components.queryItems = [
+            URLQueryItem(name: "client", value: "youtube"),
+            URLQueryItem(name: "hl", value: "ru"),
+            URLQueryItem(name: "ds", value: "yt"),
+            URLQueryItem(name: "q", value: trimmed)
+        ]
+
+        guard let url = components.url else { return [] }
+
+        var request = URLRequest(url: url, timeoutInterval: 8)
+        request.setValue("YouTubePlayerApp/1.0", forHTTPHeaderField: "User-Agent")
+
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                return []
             }
-            seen.insert(parsed.videoID)
-            results.append(parsed)
-            if results.count >= 24 {
-                break
+
+            guard let raw = String(data: data, encoding: .utf8) else { return [] }
+            let jsonText = raw.hasPrefix("window.google.ac.h(")
+                ? String(raw.dropFirst("window.google.ac.h(".count).dropLast(1))
+                : raw
+
+            guard
+                let jsonData = jsonText.data(using: .utf8),
+                let parsed = try JSONSerialization.jsonObject(with: jsonData) as? [Any],
+                parsed.count > 1,
+                let suggestions = parsed[1] as? [String]
+            else {
+                return []
+            }
+
+            return Array(suggestions.prefix(6))
+        } catch {
+            return []
+        }
+    }
+
+    func buildSuggestionItems(
+        query: String,
+        filter: YouTubeSearchFilter,
+        includeQuerySuggestions: Bool = true
+    ) async throws -> [YouTubeSearchSuggestionItem] {
+        async let querySuggestionsTask: [String] = includeQuerySuggestions
+            ? fetchQuerySuggestions(query: query)
+            : []
+        async let searchTask = search(query: query, filter: filter)
+
+        let querySuggestions = await querySuggestionsTask
+        let response = try await searchTask
+
+        var items: [YouTubeSearchSuggestionItem] = []
+        var seen = Set<String>()
+
+        for suggestion in querySuggestions {
+            let key = suggestion.lowercased()
+            guard seen.insert(key).inserted else { continue }
+            items.append(.query(suggestion))
+        }
+
+        switch filter {
+        case .video:
+            for video in response.videos.prefix(12) {
+                items.append(.video(video))
+            }
+        case .channel:
+            for channel in response.channels.prefix(12) {
+                items.append(.channel(channel))
             }
         }
 
-        return results
+        return items
     }
 
-    private func collectVideoRenderers(from json: Any) -> [[String: Any]] {
+    private func parseSearchResponse(_ json: [String: Any], filter: YouTubeSearchFilter) -> YouTubeSearchResponse {
+        let videoRenderers = collectRenderers(from: json, keys: [
+            "videoRenderer",
+            "gridVideoRenderer",
+            "compactVideoRenderer",
+            "playlistVideoRenderer"
+        ])
+        let channelRenderers = collectRenderers(from: json, keys: ["channelRenderer"])
+
+        var seenVideos = Set<String>()
+        var videos: [YouTubeSearchResult] = []
+        for renderer in videoRenderers {
+            guard let parsed = parseVideoRenderer(renderer), seenVideos.insert(parsed.videoID).inserted else {
+                continue
+            }
+            videos.append(parsed)
+            if videos.count >= 24 { break }
+        }
+
+        var seenChannels = Set<String>()
+        var channels: [YouTubeChannelResult] = []
+        for renderer in channelRenderers {
+            guard let parsed = parseChannelRenderer(renderer), seenChannels.insert(parsed.channelID).inserted else {
+                continue
+            }
+            channels.append(parsed)
+            if channels.count >= 24 { break }
+        }
+
+        if filter == .channel, channels.isEmpty {
+            for renderer in videoRenderers {
+                guard let channelTitle = text(from: renderer["ownerText"])
+                    ?? text(from: renderer["longBylineText"])
+                    ?? text(from: renderer["shortBylineText"]) else {
+                    continue
+                }
+                let key = channelTitle.lowercased()
+                guard seenChannels.insert(key).inserted else { continue }
+                channels.append(
+                    YouTubeChannelResult(
+                        id: key,
+                        channelID: key,
+                        title: channelTitle,
+                        subscriberCountText: "",
+                        videoCountText: "",
+                        thumbnailURL: thumbnailURL(from: renderer["channelThumbnail"])
+                            ?? thumbnailURL(from: renderer["thumbnail"])
+                    )
+                )
+                if channels.count >= 12 { break }
+            }
+        }
+
+        return YouTubeSearchResponse(videos: videos, channels: channels)
+    }
+
+    private func collectRenderers(from json: Any, keys: [String]) -> [[String: Any]] {
         var output: [[String: Any]] = []
 
         if let dictionary = json as? [String: Any] {
-            for key in ["videoRenderer", "gridVideoRenderer", "compactVideoRenderer", "playlistVideoRenderer"] {
+            for key in keys {
                 if let renderer = dictionary[key] as? [String: Any] {
                     output.append(renderer)
                 }
             }
             for value in dictionary.values {
-                output.append(contentsOf: collectVideoRenderers(from: value))
+                output.append(contentsOf: collectRenderers(from: value, keys: keys))
             }
         } else if let array = json as? [Any] {
             for value in array {
-                output.append(contentsOf: collectVideoRenderers(from: value))
+                output.append(contentsOf: collectRenderers(from: value, keys: keys))
             }
         }
 
@@ -143,6 +268,39 @@ actor YouTubeSearchService {
             durationText: duration,
             thumbnailURL: thumbnailURL
         )
+    }
+
+    private func parseChannelRenderer(_ renderer: [String: Any]) -> YouTubeChannelResult? {
+        let title = text(from: renderer["title"]) ?? "YouTube канал"
+        let channelID = (renderer["channelId"] as? String)
+            ?? browseChannelID(from: renderer["navigationEndpoint"])
+            ?? title.lowercased()
+
+        let subscribers = text(from: renderer["subscriberCountText"])
+            ?? text(from: renderer["videoCountText"])
+            ?? ""
+        let videos = text(from: renderer["videoCountText"]) ?? ""
+
+        return YouTubeChannelResult(
+            id: channelID,
+            channelID: channelID,
+            title: title,
+            subscriberCountText: subscribers,
+            videoCountText: videos,
+            thumbnailURL: thumbnailURL(from: renderer["thumbnail"])
+        )
+    }
+
+    private func browseChannelID(from value: Any?) -> String? {
+        guard
+            let dictionary = value as? [String: Any],
+            let endpoint = dictionary["browseEndpoint"] as? [String: Any],
+            let browseID = endpoint["browseId"] as? String,
+            !browseID.isEmpty
+        else {
+            return nil
+        }
+        return browseID
     }
 
     private func text(from value: Any?) -> String? {

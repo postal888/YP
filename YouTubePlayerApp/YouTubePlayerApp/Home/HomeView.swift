@@ -8,42 +8,62 @@ struct HomeView: View {
     @State private var searchText = ""
     @State private var activeQuery = ""
     @State private var results: [YouTubeSearchResult] = []
+    @State private var suggestionItems: [YouTubeSearchSuggestionItem] = []
     @State private var isSearching = false
     @State private var searchError: String?
     @State private var selectedCategory: String?
+    @State private var isSearchActive = false
+    @State private var searchFilter: YouTubeSearchFilter = .video
+    @State private var searchTask: Task<Void, Never>?
+
+    private let searchDebounceMs: UInt64 = 350
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                heroSection
+                if !isSearchActive {
+                    heroSection
+                }
                 searchSection
-                categoryChips
-                resultsSection
+
+                if isSearchActive {
+                    suggestionsPanel
+                }
+
+                if !isSearchActive {
+                    categoryChips
+                    resultsSection
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
             .padding(.bottom, 24)
         }
         .background(PortTheme.background.ignoresSafeArea())
+        .onChange(of: searchText) { _ in
+            scheduleLiveSearch()
+        }
+        .onChange(of: searchFilter) { _ in
+            scheduleLiveSearch(force: true)
+        }
     }
 
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                Image(systemName: "captions.bubble.fill")
+                Image(systemName: "play.rectangle.fill")
                     .font(.title2)
                     .foregroundStyle(PortTheme.accent)
-
-                Text("PortuLearn")
+                Text("Video")
                     .font(.title2.bold())
                     .foregroundStyle(PortTheme.heading)
             }
 
-            Text("Учите язык с YouTube")
+            Text("YouTube · субтитры и перевод")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(PortTheme.heading)
 
-            Text("Субтитры, перевод слов и практика — прямо в приложении, как в Trancy.")
+            Text("Ищите видео, смотрите с субтитрами и нажимайте на слова.")
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -53,19 +73,46 @@ struct HomeView: View {
 
     private var searchSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PortSearchBar(
-                text: $searchText,
-                placeholder: "Поиск видео на YouTube…",
-                onSubmit: { submitSearch() }
-            )
+            HStack(spacing: 10) {
+                PortSearchBar(
+                    text: $searchText,
+                    placeholder: "Поиск видео на YouTube…",
+                    onSubmit: { submitSearch() },
+                    onEditingChanged: { editing in
+                        isSearchActive = editing || !searchText.isEmpty
+                        if !editing, searchText.isEmpty {
+                            suggestionItems = []
+                        }
+                    }
+                )
 
-            Button("Искать") {
-                submitSearch()
+                if isSearchActive {
+                    Button("Отмена") {
+                        cancelSearch()
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(PortTheme.accent)
+                }
             }
-            .buttonStyle(PortPrimaryButtonStyle())
-            .disabled(searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSearching)
 
-            if let directVideoID = directVideoID(from: searchText), !searchText.isEmpty {
+            if isSearchActive {
+                HStack(spacing: 8) {
+                    ForEach(YouTubeSearchFilter.allCases) { filter in
+                        Button(filter.label) {
+                            searchFilter = filter
+                        }
+                        .buttonStyle(PortChipButtonStyle(isSelected: searchFilter == filter))
+                    }
+                }
+            } else {
+                Button("Искать") {
+                    submitSearch()
+                }
+                .buttonStyle(PortPrimaryButtonStyle())
+                .disabled(searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSearching)
+            }
+
+            if let directVideoID = directVideoID(from: searchText), !searchText.isEmpty, !isSearchActive {
                 Button {
                     onOpenVideo(directVideoID)
                 } label: {
@@ -87,6 +134,52 @@ struct HomeView: View {
         }
     }
 
+    private var suggestionsPanel: some View {
+        VStack(spacing: 0) {
+            if isSearching {
+                HStack(spacing: 10) {
+                    ProgressView().tint(PortTheme.accent)
+                    Text("Ищем…")
+                        .font(.subheadline)
+                        .foregroundStyle(PortTheme.textMuted)
+                    Spacer()
+                }
+                .padding(14)
+            } else if let searchError {
+                Text(searchError)
+                    .font(.subheadline)
+                    .foregroundStyle(PortTheme.danger)
+                    .padding(14)
+            } else if suggestionItems.isEmpty, !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Начните вводить запрос — появятся варианты")
+                    .font(.subheadline)
+                    .foregroundStyle(PortTheme.textMuted)
+                    .padding(14)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(suggestionItems) { item in
+                            YouTubeSearchSuggestionRow(item: item) {
+                                selectSuggestion(item)
+                            }
+
+                            if item.id != suggestionItems.last?.id {
+                                Divider().overlay(PortTheme.border)
+                            }
+                        }
+                    }
+                }
+                .frame(maxHeight: 420)
+            }
+        }
+        .background(PortTheme.surface)
+        .overlay(
+            RoundedRectangle(cornerRadius: PortTheme.radiusLG, style: .continuous)
+                .stroke(PortTheme.cardBorder, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: PortTheme.radiusLG, style: .continuous))
+    }
+
     private var categoryChips: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Популярные темы")
@@ -99,6 +192,7 @@ struct HomeView: View {
                         Button(category.title) {
                             selectedCategory = category.title
                             searchText = category.query
+                            isSearchActive = true
                             submitSearch(query: category.query)
                         }
                         .buttonStyle(PortChipButtonStyle(isSelected: selectedCategory == category.title))
@@ -111,7 +205,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var resultsSection: some View {
-        if isSearching {
+        if isSearching, !isSearchActive {
             HStack(spacing: 10) {
                 ProgressView()
                     .tint(PortTheme.accent)
@@ -121,7 +215,7 @@ struct HomeView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 8)
-        } else if let searchError {
+        } else if let searchError, !isSearchActive {
             Text(searchError)
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.danger)
@@ -164,8 +258,8 @@ struct HomeView: View {
                 .foregroundStyle(PortTheme.textSubtle)
 
             VStack(alignment: .leading, spacing: 8) {
-                tipRow("1", "Введите запрос или выберите тему")
-                tipRow("2", "Откройте видео с субтитрами")
+                tipRow("1", "Начните вводить запрос")
+                tipRow("2", "Выберите вариант из списка")
                 tipRow("3", "Нажимайте на слова для перевода")
             }
         }
@@ -188,27 +282,105 @@ struct HomeView: View {
         }
     }
 
+    private func scheduleLiveSearch(force: Bool = false) {
+        searchTask?.cancel()
+
+        let raw = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else {
+            suggestionItems = []
+            searchError = nil
+            isSearching = false
+            return
+        }
+
+        if let videoID = directVideoID(from: raw) {
+            suggestionItems = []
+            return
+        }
+
+        isSearchActive = true
+        isSearching = true
+        searchError = nil
+
+        searchTask = Task {
+            if !force {
+                try? await Task.sleep(nanoseconds: searchDebounceMs * 1_000_000)
+            }
+            guard !Task.isCancelled else { return }
+
+            do {
+                let items = try await YouTubeSearchService.shared.buildSuggestionItems(
+                    query: raw,
+                    filter: searchFilter
+                )
+                guard !Task.isCancelled else { return }
+                suggestionItems = items
+                if items.isEmpty {
+                    searchError = "По запросу «\(raw)» ничего не найдено."
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                searchError = error.localizedDescription
+                suggestionItems = []
+                errorLog.add(source: "Search", message: "query=\(raw): \(error.localizedDescription)")
+            }
+
+            isSearching = false
+        }
+    }
+
+    private func selectSuggestion(_ item: YouTubeSearchSuggestionItem) {
+        switch item {
+        case .query(let text):
+            searchText = text
+            submitSearch(query: text)
+
+        case .video(let result):
+            isSearchActive = false
+            suggestionItems = []
+            onOpenVideo(result.videoID)
+
+        case .channel(let channel):
+            searchFilter = .video
+            searchText = channel.title
+            submitSearch(query: channel.title)
+        }
+    }
+
+    private func cancelSearch() {
+        searchTask?.cancel()
+        searchText = ""
+        suggestionItems = []
+        searchError = nil
+        isSearching = false
+        isSearchActive = false
+    }
+
     private func submitSearch(query: String? = nil) {
         let raw = (query ?? searchText).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else { return }
 
         if let videoID = directVideoID(from: raw) {
+            isSearchActive = false
             onOpenVideo(videoID)
             return
         }
 
         activeQuery = raw
+        searchText = raw
         searchError = nil
         isSearching = true
         results = []
 
         Task {
             do {
-                let found = try await YouTubeSearchService.shared.search(query: raw)
-                results = found
-                if found.isEmpty {
+                let response = try await YouTubeSearchService.shared.search(query: raw, filter: .video)
+                results = response.videos
+                if response.videos.isEmpty {
                     searchError = "По запросу «\(raw)» ничего не найдено."
                 }
+                isSearchActive = false
+                suggestionItems = []
             } catch {
                 searchError = error.localizedDescription
                 errorLog.add(source: "Search", message: "query=\(raw): \(error.localizedDescription)")

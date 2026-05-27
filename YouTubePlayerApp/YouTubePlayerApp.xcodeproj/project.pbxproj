@@ -38,6 +38,12 @@
 		2A000001000000000000004E /* BooksLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000004D /* BooksLibraryView.swift */; };
 		2A0000010000000000000050 /* DictionaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000004F /* DictionaryView.swift */; };
 		2A0000010000000000000052 /* YouTubeRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000051 /* YouTubeRootView.swift */; };
+		2A000001000000000000005C /* YouTubeSearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000005B /* YouTubeSearchModels.swift */; };
+		2A000001000000000000005E /* YouTubeSearchSuggestionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000005D /* YouTubeSearchSuggestionRow.swift */; };
+		2A0000010000000000000060 /* AppTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000005F /* AppTab.swift */; };
+		2A0000010000000000000062 /* PortBottomNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000061 /* PortBottomNav.swift */; };
+		2A0000010000000000000064 /* HomeTabScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000063 /* HomeTabScreen.swift */; };
+		2A0000010000000000000066 /* StudyTabScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000065 /* StudyTabScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,6 +78,12 @@
 		2A000001000000000000004D /* BooksLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BooksLibraryView.swift; sourceTree = "<group>"; };
 		2A000001000000000000004F /* DictionaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryView.swift; sourceTree = "<group>"; };
 		2A0000010000000000000051 /* YouTubeRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeRootView.swift; sourceTree = "<group>"; };
+		2A000001000000000000005B /* YouTubeSearchModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSearchModels.swift; sourceTree = "<group>"; };
+		2A000001000000000000005D /* YouTubeSearchSuggestionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSearchSuggestionRow.swift; sourceTree = "<group>"; };
+		2A000001000000000000005F /* AppTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTab.swift; sourceTree = "<group>"; };
+		2A0000010000000000000061 /* PortBottomNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortBottomNav.swift; sourceTree = "<group>"; };
+		2A0000010000000000000063 /* HomeTabScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeTabScreen.swift; sourceTree = "<group>"; };
+		2A0000010000000000000065 /* StudyTabScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTabScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,7 +120,9 @@
 				2A0000010000000000000004 /* YouTubePlayerApp.swift */,
 				2A0000010000000000000005 /* ContentView.swift */,
 				2A0000010000000000000053 /* YouTube */,
+				2A0000010000000000000067 /* Navigation */,
 				2A0000010000000000000041 /* Home */,
+				2A0000010000000000000068 /* Study */,
 				2A0000010000000000000054 /* Reader */,
 				2A0000010000000000000055 /* Dictionary */,
 				2A0000010000000000000056 /* Vocabulary */,
@@ -122,6 +136,23 @@
 				2A0000010000000000000007 /* Assets.xcassets */,
 			);
 			path = YouTubePlayerApp;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000067 /* Navigation */ = {
+			isa = PBXGroup;
+			children = (
+				2A000001000000000000005F /* AppTab.swift */,
+				2A0000010000000000000061 /* PortBottomNav.swift */,
+			);
+			path = Navigation;
+			sourceTree = "<group>";
+		};
+		2A0000010000000000000068 /* Study */ = {
+			isa = PBXGroup;
+			children = (
+				2A0000010000000000000065 /* StudyTabScreen.swift */,
+			);
+			path = Study;
 			sourceTree = "<group>";
 		};
 		2A0000010000000000000053 /* YouTube */ = {
@@ -164,9 +195,11 @@
 		2A0000010000000000000041 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				2A0000010000000000000063 /* HomeTabScreen.swift */,
 				2A000001000000000000003F /* HomeView.swift */,
 				2A000001000000000000003B /* PortSearchBar.swift */,
 				2A000001000000000000003D /* YouTubeVideoCard.swift */,
+				2A000001000000000000005D /* YouTubeSearchSuggestionRow.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -175,6 +208,7 @@
 			isa = PBXGroup;
 			children = (
 				2A0000010000000000000039 /* YouTubeSearchService.swift */,
+				2A000001000000000000005B /* YouTubeSearchModels.swift */,
 			);
 			path = Search;
 			sourceTree = "<group>";
@@ -306,6 +340,12 @@
 				2A000001000000000000004E /* BooksLibraryView.swift in Sources */,
 				2A0000010000000000000050 /* DictionaryView.swift in Sources */,
 				2A0000010000000000000052 /* YouTubeRootView.swift in Sources */,
+				2A000001000000000000005C /* YouTubeSearchModels.swift in Sources */,
+				2A000001000000000000005E /* YouTubeSearchSuggestionRow.swift in Sources */,
+				2A0000010000000000000060 /* AppTab.swift in Sources */,
+				2A0000010000000000000062 /* PortBottomNav.swift in Sources */,
+				2A0000010000000000000064 /* HomeTabScreen.swift in Sources */,
+				2A0000010000000000000066 /* StudyTabScreen.swift in Sources */,
 				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
 				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
 			);

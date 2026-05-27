@@ -4,13 +4,16 @@ struct PortSearchBar: View {
     @Binding var text: String
     var placeholder: String
     var onSubmit: () -> Void
+    var onEditingChanged: ((Bool) -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(PortTheme.textMuted)
 
-            TextField(placeholder, text: $text, onCommit: onSubmit)
+            TextField(placeholder, text: $text, onEditingChanged: { isEditing in
+                onEditingChanged?(isEditing)
+            }, onCommit: onSubmit)
                 .foregroundStyle(PortTheme.textPrimary)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
