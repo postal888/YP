@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PortBottomNav: View {
     @Binding var selected: AppTab
+    @EnvironmentObject private var appSettings: AppSettings
 
     var body: some View {
         VStack(spacing: 0) {
@@ -13,7 +14,7 @@ struct PortBottomNav: View {
                         VStack(spacing: 2) {
                             Image(systemName: tab.systemImage)
                                 .font(.system(size: 18, weight: .semibold))
-                            Text(tab.label)
+                            Text(tab.label(strings: appSettings.strings))
                                 .font(.system(size: 10, weight: .semibold))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
@@ -48,6 +49,7 @@ struct PortBottomNav: View {
 struct PortBottomNav_Previews: PreviewProvider {
     static var previews: some View {
         PortBottomNav(selected: .constant(.home))
+            .environmentObject(AppSettings())
             .background(PortTheme.background)
     }
 }

@@ -19,8 +19,9 @@ struct DictionaryView: View {
     @State private var isSelectionMode = false
     @State private var selectedCardIDs: Set<UUID> = []
     @State private var showBulkDeleteConfirmation = false
+    @State private var showRecordingsLibrary = false
 
-    private var filteredCards: [VocabularyCard] {
+    private var strings: AppStrings { appSettings.strings }
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !query.isEmpty else { return vocabularyStore.cards }
         return vocabularyStore.cards.filter { card in
@@ -49,7 +50,7 @@ struct DictionaryView: View {
                 } else {
                     PortSearchBar(
                         text: $searchText,
-                        placeholder: "Поиск в словаре…",
+                        placeholder: strings.searchDictionary,
                         onSubmit: {}
                     )
                     .padding(.horizontal, 16)
@@ -112,22 +113,25 @@ struct DictionaryView: View {
             .sheet(item: $csvShareItem) { item in
                 ShareSheet(items: [item.url])
             }
-            .alert("Не удалось экспортировать", isPresented: $showExportError) {
-                Button("OK", role: .cancel) {}
+            .sheet(isPresented: $showRecordingsLibrary) {
+                DictionaryRecordingsLibraryView()
+            }
+            .alert(strings.exportFailed, isPresented: $showExportError) {
+                Button(strings.ok, role: .cancel) {}
             } message: {
                 Text(exportErrorMessage)
             }
             .confirmationDialog(
-                "Удалить выбранные слова?",
+                strings.deleteSelectedTitle,
                 isPresented: $showBulkDeleteConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Удалить \(selectedCardIDs.count)", role: .destructive) {
+                Button(strings.deleteSelected(selectedCardIDs.count), role: .destructive) {
                     deleteSelectedCards()
                 }
-                Button("Отмена", role: .cancel) {}
+                Button(strings.cancel, role: .cancel) {}
             } message: {
-                Text("Карточки и их аудиозаписи будут удалены без возможности восстановления.")
+                Text(strings.deleteSelectedMessage)
             }
         }
         .navigationViewStyle(.stack)
@@ -141,7 +145,7 @@ struct DictionaryView: View {
                         Image(systemName: "rectangle.stack.fill")
                             .font(.title2)
                             .foregroundStyle(PortTheme.accent)
-                        Text("Словарь")
+                        Text(strings.dictionaryTitle)
                             .font(.title2.bold())
                             .foregroundStyle(PortTheme.heading)
                     }
@@ -154,10 +158,27 @@ struct DictionaryView: View {
                 Spacer(minLength: 0)
 
                 HStack(spacing: 8) {
+                    if !vocabularyStore.cards.isEmpty && !isSelectionMode {
+                        Button {
+                            showRecordingsLibrary = true
+                        } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: "waveform")
+                                    .font(.body.weight(.semibold))
+                                Text(strings.recordings)
+                                    .font(.caption2.weight(.medium))
+                            }
+                            .foregroundStyle(PortTheme.accent)
+                            .frame(minWidth: 52, minHeight: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(strings.recordingsLibraryTitle)
+                    }
+
                     Button {
                         toggleSelectionMode()
                     } label: {
-                        Text(isSelectionMode ? "Готово" : "Выбрать")
+                        Text(isSelectionMode ? strings.done : strings.select)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(isSelectionMode ? PortTheme.accent : PortTheme.textSubtle)
                             .padding(.horizontal, 10)
@@ -173,32 +194,32 @@ struct DictionaryView: View {
                             VStack(spacing: 4) {
                                 Image(systemName: "square.and.arrow.up")
                                     .font(.body.weight(.semibold))
-                                Text("CSV")
+                                Text(strings.exportCSV)
                                     .font(.caption2.weight(.medium))
                             }
                             .foregroundStyle(PortTheme.accent)
                             .frame(minWidth: 52, minHeight: 44)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Экспорт словаря в CSV")
+                        .accessibilityLabel(strings.exportCSV)
                     }
                 }
             }
 
             if isSelectionMode {
                 HStack(spacing: 8) {
-                    Button("Все") {
+                    Button(strings.all) {
                         selectedCardIDs = Set(filteredCards.map(\.id))
                     }
                     .buttonStyle(PortChipButtonStyle(isSelected: false))
 
-                    Button("Сброс") {
+                    Button(strings.reset) {
                         selectedCardIDs.removeAll()
                     }
                     .buttonStyle(PortChipButtonStyle(isSelected: false))
 
                     if !selectedCardIDs.isEmpty {
-                        Text("\(selectedCardIDs.count) выбрано")
+                        Text(strings.selectedCount(selectedCardIDs.count))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(PortTheme.accent)
                     }
@@ -214,10 +235,10 @@ struct DictionaryView: View {
     private var selectionToolbar: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(selectedCardIDs.count) выбрано")
+                Text(strings.selectedCount(selectedCardIDs.count))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PortTheme.heading)
-                Text("Экспорт, удаление или диктофон")
+                Text(strings.exportDeleteHint)
                     .font(.caption)
                     .foregroundStyle(PortTheme.textMuted)
             }
@@ -233,7 +254,7 @@ struct DictionaryView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(PortTheme.accent)
-            .accessibilityLabel("Экспорт выбранных в CSV")
+            .accessibilityLabel(strings.exportCSV)
 
             Button {
                 showBulkDeleteConfirmation = true
@@ -244,7 +265,7 @@ struct DictionaryView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(PortTheme.danger)
-            .accessibilityLabel("Удалить выбранные")
+            .accessibilityLabel(strings.delete)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -257,9 +278,9 @@ struct DictionaryView: View {
     private var headerSubtitle: String {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         if query.isEmpty {
-            return "\(vocabularyStore.cards.count) карточек · \(folders.count) папок"
+            return strings.cardsCount(vocabularyStore.cards.count, folders: folders.count)
         }
-        return "\(filteredCards.count) из \(vocabularyStore.cards.count) карточек · \(folders.count) папок"
+        return strings.filteredCardsCount(filteredCards.count, total: vocabularyStore.cards.count, folders: folders.count)
     }
 
     private func toggleSelectionMode() {
@@ -346,11 +367,11 @@ struct DictionaryView: View {
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
                         HStack(spacing: 8) {
-                            Text("\(folder.cards.count) слов")
+                            Text(strings.wordsCount(folder.cards.count))
                                 .font(.caption)
                                 .foregroundStyle(PortTheme.textMuted)
                             if vocabularyStore.hasFolderRecording(for: folder.key) {
-                                Label("запись", systemImage: "mic.fill")
+                                Label(strings.hasRecording, systemImage: "mic.fill")
                                     .font(.caption2.weight(.semibold))
                                     .foregroundStyle(PortTheme.accent)
                             }
@@ -370,7 +391,7 @@ struct DictionaryView: View {
                 Button {
                     selectAll(in: folder)
                 } label: {
-                    Text("Все")
+                    Text(strings.all)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PortTheme.accent)
                         .padding(.horizontal, 8)
@@ -389,7 +410,7 @@ struct DictionaryView: View {
                     .foregroundStyle(PortTheme.accent)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Озвучить папку")
+            .accessibilityLabel(strings.speakFolder)
 
             Button {
                 openFolderRecorder(for: folder)
@@ -400,7 +421,7 @@ struct DictionaryView: View {
             }
             .buttonStyle(.plain)
             .disabled(recorderService.isRecording && recorderService.recordingFolderKey != folder.key)
-            .accessibilityLabel("Диктофон папки")
+            .accessibilityLabel(strings.folderDictaphone)
 
             Button {
                 renamingFolder = folder
@@ -410,7 +431,7 @@ struct DictionaryView: View {
                     .foregroundStyle(PortTheme.accent)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Переименовать папку")
+            .accessibilityLabel(strings.renameFolder)
         }
         .padding(12)
         .portCard()
@@ -504,7 +525,7 @@ struct DictionaryView: View {
                                 .clipShape(Capsule())
 
                             if vocabularyStore.hasRecording(for: card.id) {
-                                Label("есть запись", systemImage: "mic.fill")
+                                Label(strings.hasRecording, systemImage: "mic.fill")
                                     .font(.caption2.weight(.semibold))
                                     .foregroundStyle(PortTheme.accent)
                             }
@@ -526,7 +547,7 @@ struct DictionaryView: View {
 
                 HStack(spacing: 8) {
                     cardActionButton(
-                        title: "Диктофон",
+                        title: strings.dictaphone,
                         systemImage: vocabularyStore.hasRecording(for: card.id) ? "mic.fill" : "mic",
                         tint: vocabularyStore.hasRecording(for: card.id) ? PortTheme.accent : PortTheme.textSubtle
                     ) {
@@ -535,7 +556,7 @@ struct DictionaryView: View {
                     .disabled(recorderService.isRecording && recorderService.recordingWordID != card.id)
 
                     cardActionButton(
-                        title: "Озвучить",
+                        title: strings.speak,
                         systemImage: ttsService.playingCardID == card.id ? "speaker.wave.2.fill" : "speaker.wave.2",
                         tint: PortTheme.accent
                     ) {
@@ -551,7 +572,7 @@ struct DictionaryView: View {
                     Spacer(minLength: 0)
 
                     cardActionButton(
-                        title: "Удалить",
+                        title: strings.delete,
                         systemImage: "trash",
                         tint: PortTheme.danger
                     ) {
@@ -598,10 +619,10 @@ struct DictionaryView: View {
             Image(systemName: "character.book.closed")
                 .font(.system(size: 42))
                 .foregroundStyle(PortTheme.textMuted)
-            Text("Словарь пуст")
+            Text(strings.dictionaryEmpty)
                 .font(.headline)
                 .foregroundStyle(PortTheme.heading)
-            Text("Нажимайте на слова в PDF или субтитрах и сохраняйте перевод.")
+            Text(strings.dictionaryEmptyHint)
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
                 .multilineTextAlignment(.center)

@@ -12,10 +12,10 @@ struct InteractiveSubtitleText: View {
     let lineID: String
     let sourceLanguage: String
     let translatedKeys: Set<String>
+    let interactionToken: Int
     @Binding var activeWord: ActiveSubtitleWord?
     @Binding var translationPreview: String?
     @Binding var isTranslating: Bool
-    let onWordTranslated: (WordTranslationEntry) -> Void
     let onTranslationError: (String) -> Void
 
     @EnvironmentObject private var appSettings: AppSettings
@@ -31,9 +31,9 @@ struct InteractiveSubtitleText: View {
             activeWord: $activeWord,
             translationPreview: $translationPreview,
             isTranslating: $isTranslating,
-            onWordTranslated: onWordTranslated,
             onTranslationError: onTranslationError
         )
+        .id("\(lineID)-\(interactionToken)")
         .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -48,7 +48,6 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
     @Binding var activeWord: ActiveSubtitleWord?
     @Binding var translationPreview: String?
     @Binding var isTranslating: Bool
-    let onWordTranslated: (WordTranslationEntry) -> Void
     let onTranslationError: (String) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -59,10 +58,10 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
         let view = TappableSubtitleTextView()
         view.delegate = context.coordinator
         view.onLinkHover = { url, interaction in
-            context.coordinator.handleLink(url, interaction: interaction, persistRecent: false)
+            context.coordinator.handleLink(url, interaction: interaction)
         }
         view.onLinkTap = { url in
-            context.coordinator.handleLink(url, interaction: .invokeDefaultAction, persistRecent: true)
+            context.coordinator.handleLink(url, interaction: .invokeDefaultAction)
         }
         view.backgroundColor = .clear
         view.textContainerInset = .zero
@@ -70,6 +69,7 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
         view.isEditable = false
         view.isScrollEnabled = false
         view.isSelectable = true
+        view.isUserInteractionEnabled = true
         view.dataDetectorTypes = []
         view.linkTextAttributes = [:]
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -79,11 +79,13 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
 
     func updateUIView(_ uiView: TappableSubtitleTextView, context: Context) {
         context.coordinator.parent = self
+        uiView.isUserInteractionEnabled = true
+        uiView.isSelectable = true
         uiView.onLinkHover = { url, _ in
-            context.coordinator.handleLink(url, interaction: .preview, persistRecent: false)
+            context.coordinator.handleLink(url, interaction: .preview)
         }
         uiView.onLinkTap = { url in
-            context.coordinator.handleLink(url, interaction: .invokeDefaultAction, persistRecent: true)
+            context.coordinator.handleLink(url, interaction: .invokeDefaultAction)
         }
         updateContent(in: uiView)
     }
@@ -141,6 +143,7 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: TappableSubtitleTextRepresentable
         private var lastHandledLinkAt: Date = .distantPast
+        private var translationTask: Task<Void, Never>?
 
         init(parent: TappableSubtitleTextRepresentable) {
             self.parent = parent
@@ -152,11 +155,11 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
             in characterRange: NSRange,
             interaction: UITextItemInteraction
         ) -> Bool {
-            handleLink(URL, interaction: interaction, persistRecent: true)
+            handleLink(URL, interaction: interaction)
             return false
         }
 
-        func handleLink(_ url: URL, interaction: UITextItemInteraction, persistRecent: Bool) {
+        func handleLink(_ url: URL, interaction: UITextItemInteraction) {
             guard url.scheme == "subtitleword", let lookupKey = url.host?.removingPercentEncoding else {
                 return
             }
@@ -174,8 +177,9 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
             let word = ActiveSubtitleWord(lookupKey: lookupKey, display: display)
             parent.activeWord = word
 
-            Task { @MainActor in
-                await parent.translate(word: word, persistRecent: persistRecent)
+            translationTask?.cancel()
+            translationTask = Task { @MainActor in
+                await parent.translate(word: word)
             }
         }
     }
@@ -183,17 +187,17 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
 
 private extension TappableSubtitleTextRepresentable {
     @MainActor
-    func translate(word: ActiveSubtitleWord, persistRecent: Bool) async {
+    func translate(word: ActiveSubtitleWord) async {
+        if Task.isCancelled { return }
+
         if let cached = await WordTranslationService.shared.cachedTranslation(
             for: word.lookupKey,
             sourceLanguage: sourceLanguage,
             context: .subtitle,
             useChatGPT: useChatGPT
         ) {
+            guard !Task.isCancelled else { return }
             translationPreview = "\(word.display) — \(cached)"
-            if persistRecent {
-                onWordTranslated(WordTranslationEntry(source: word.lookupKey, translation: cached))
-            }
             return
         }
 
@@ -208,11 +212,11 @@ private extension TappableSubtitleTextRepresentable {
                 useChatGPT: useChatGPT,
                 backendBaseURL: backendBaseURL
             )
+            guard !Task.isCancelled else { return }
             translationPreview = "\(word.display) — \(translated)"
-            if persistRecent {
-                onWordTranslated(WordTranslationEntry(source: word.lookupKey, translation: translated))
-            }
         } catch {
+            guard !Task.isCancelled else { return }
+            if error is CancellationError { return }
             translationPreview = nil
             onTranslationError(error.localizedDescription)
         }

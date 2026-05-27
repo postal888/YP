@@ -8,6 +8,7 @@ struct YouTubeSubtitlesView: View {
     let translatedKeys: Set<String>
     let folderKey: String?
     let folderTitle: String?
+    let interactionToken: Int
     @Binding var translationPreview: String?
     @Binding var isTranslating: Bool
     let onTimestampTap: ((YouTubeSubtitleLine) -> Void)?
@@ -15,6 +16,7 @@ struct YouTubeSubtitlesView: View {
     let onTranslationError: (String) -> Void
 
     @EnvironmentObject private var vocabularyStore: VocabularyStore
+    @EnvironmentObject private var appSettings: AppSettings
 
     @State private var userScrollUntil: Date = .distantPast
     @State private var activeWord: ActiveSubtitleWord?
@@ -27,6 +29,7 @@ struct YouTubeSubtitlesView: View {
         translatedKeys: Set<String>,
         folderKey: String? = nil,
         folderTitle: String? = nil,
+        interactionToken: Int = 0,
         translationPreview: Binding<String?>,
         isTranslating: Binding<Bool>,
         onTimestampTap: ((YouTubeSubtitleLine) -> Void)? = nil,
@@ -39,6 +42,7 @@ struct YouTubeSubtitlesView: View {
         self.translatedKeys = translatedKeys
         self.folderKey = folderKey
         self.folderTitle = folderTitle
+        self.interactionToken = interactionToken
         self._translationPreview = translationPreview
         self._isTranslating = isTranslating
         self.onTimestampTap = onTimestampTap
@@ -112,7 +116,7 @@ struct YouTubeSubtitlesView: View {
                             .foregroundStyle(PortTheme.accent)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Добавить в словарь")
+                    .accessibilityLabel(appSettings.strings.addToDictionary)
                 }
             }
         }
@@ -127,7 +131,7 @@ struct YouTubeSubtitlesView: View {
 
     private func translationEntry(from preview: String) -> WordTranslationEntry? {
         guard !isTranslating else { return nil }
-        guard let range = preview.range(of: " — ") else { return nil }
+        guard let range = preview.rangeOfTranslationSeparator else { return nil }
         let translation = String(preview[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !translation.isEmpty, translation != "…" else { return nil }
 
@@ -171,10 +175,10 @@ struct YouTubeSubtitlesView: View {
                 lineID: line.id,
                 sourceLanguage: sourceLanguage,
                 translatedKeys: translatedKeys,
+                interactionToken: interactionToken,
                 activeWord: $activeWord,
                 translationPreview: $translationPreview,
                 isTranslating: $isTranslating,
-                onWordTranslated: onWordTranslated,
                 onTranslationError: onTranslationError
             )
             .foregroundStyle(textColor(for: tone))
@@ -224,7 +228,8 @@ struct YouTubeSubtitlesView_Previews: PreviewProvider {
             playbackSec: 3.5,
             sourceLanguage: "pt",
             translatedKeys: ["olá"],
-            translationPreview: .constant("Olá — привет"),
+            interactionToken: 0,
+            translationPreview: .constant("Olá — hello"),
             isTranslating: .constant(false),
             onWordTranslated: { _ in },
             onTranslationError: { _ in }

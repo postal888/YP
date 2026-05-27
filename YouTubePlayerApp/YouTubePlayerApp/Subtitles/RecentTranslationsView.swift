@@ -8,6 +8,9 @@ struct RecentTranslationsView: View {
     let onClear: () -> Void
 
     @EnvironmentObject private var vocabularyStore: VocabularyStore
+    @EnvironmentObject private var appSettings: AppSettings
+
+    private var strings: AppStrings { appSettings.strings }
 
     init(
         entries: [WordTranslationEntry],
@@ -26,19 +29,19 @@ struct RecentTranslationsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Последние переводы")
+                Text(strings.recentTranslations)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PortTheme.textSubtle)
                 Spacer()
                 if !entries.isEmpty {
-                    Button("Очистить", action: onClear)
+                    Button(strings.clear, action: onClear)
                         .font(.caption)
                         .foregroundStyle(PortTheme.accent)
                 }
             }
 
             if entries.isEmpty {
-                Text("Нажмите на слово в субтитрах")
+                Text(strings.tapWordInSubtitles)
                     .font(.caption)
                     .foregroundStyle(PortTheme.textMuted)
             } else {
@@ -90,7 +93,7 @@ struct RecentTranslationsView: View {
                         .foregroundStyle(PortTheme.accent)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Добавить в словарь")
+                .accessibilityLabel(strings.addToDictionary)
             }
         }
     }

@@ -6,6 +6,8 @@ struct AccountTabScreen: View {
     @EnvironmentObject private var vocabularyStore: VocabularyStore
     @EnvironmentObject private var learningStats: LearningStatsStore
 
+    private var strings: AppStrings { appSettings.strings }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -23,10 +25,10 @@ struct AccountTabScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Аккаунт")
+            Text(strings.accountTitle)
                 .font(.title2.bold())
                 .foregroundStyle(PortTheme.heading)
-            Text("Настройки и статистика обучения")
+            Text(strings.accountSubtitle)
                 .font(.subheadline)
                 .foregroundStyle(PortTheme.textMuted)
         }
@@ -34,14 +36,14 @@ struct AccountTabScreen: View {
 
     private var statsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Статистика")
+            Text(strings.statsTitle)
                 .font(.headline)
                 .foregroundStyle(PortTheme.heading)
 
             HStack(spacing: 0) {
-                statBlock(value: "\(vocabularyStore.cards.count)", label: "в словаре")
+                statBlock(value: "\(vocabularyStore.cards.count)", label: strings.inDictionary)
                 divider
-                statBlock(value: "\(learningStats.snapshot.reviewSessions + learningStats.snapshot.quizSessions)", label: "сессий")
+                statBlock(value: "\(learningStats.snapshot.reviewSessions + learningStats.snapshot.quizSessions)", label: strings.sessions)
                 divider
                 statBlock(value: "\(learningStats.streakDays)", label: "streak")
             }
@@ -51,15 +53,15 @@ struct AccountTabScreen: View {
             HStack(spacing: 0) {
                 statBlock(
                     value: learningStats.accuracyPercent.map { "\($0)%" } ?? "—",
-                    label: "точность (10)"
+                    label: strings.accuracyLast10
                 )
                 divider
                 statBlock(
                     value: formattedStudyTime(learningStats.snapshot.totalStudySeconds),
-                    label: "время"
+                    label: strings.studyTime
                 )
                 divider
-                statBlock(value: "\(learningStats.snapshot.quizSessions)", label: "квизов")
+                statBlock(value: "\(learningStats.snapshot.quizSessions)", label: strings.quizzes)
             }
             .padding(16)
             .portCard()
@@ -68,17 +70,33 @@ struct AccountTabScreen: View {
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Настройки")
+            Text(strings.settings)
                 .font(.headline)
                 .foregroundStyle(PortTheme.heading)
 
             VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(strings.appLanguage)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PortTheme.heading)
+                    Text(strings.appLanguageHint)
+                        .font(.caption)
+                        .foregroundStyle(PortTheme.textMuted)
+
+                    Picker(strings.appLanguage, selection: $appSettings.appLanguage) {
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.displayName).tag(language)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
                 Toggle(isOn: $appSettings.useChatGPTTranslation) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Перевод через ChatGPT")
+                        Text(strings.chatGPTTranslation)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PortTheme.heading)
-                        Text("Субтитры и читалка будут обращаться к серверу PortuPrep вместо MyMemory.")
+                        Text(strings.chatGPTTranslationHint)
                             .font(.caption)
                             .foregroundStyle(PortTheme.textMuted)
                     }
@@ -87,10 +105,10 @@ struct AccountTabScreen: View {
 
                 Toggle(isOn: $appSettings.backgroundVideoPlayback) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Фоновое воспроизведение")
+                        Text(strings.backgroundPlayback)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PortTheme.heading)
-                        Text("Видео продолжит играть при переключении на другие вкладки и в фоне приложения.")
+                        Text(strings.backgroundPlaybackHint)
                             .font(.caption)
                             .foregroundStyle(PortTheme.textMuted)
                     }
@@ -98,7 +116,7 @@ struct AccountTabScreen: View {
                 .tint(PortTheme.accent)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Сервер")
+                    Text(strings.server)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(PortTheme.textMuted)
                     TextField("https://gentechnet.com", text: $appSettings.backendBaseURL)
@@ -119,7 +137,7 @@ struct AccountTabScreen: View {
 
     private var aboutSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("PortuLearn использует API PortuPrep на gentechnet.com для перевода (OpenAI) и озвучки слов (ElevenLabs).")
+            Text(strings.aboutPortuLearn)
                 .font(.caption)
                 .foregroundStyle(PortTheme.textMuted)
         }
@@ -146,10 +164,10 @@ struct AccountTabScreen: View {
     }
 
     private func formattedStudyTime(_ seconds: Int) -> String {
-        if seconds < 60 { return "\(seconds)с" }
+        if seconds < 60 { return "\(seconds)s" }
         let minutes = seconds / 60
-        if minutes < 60 { return "\(minutes)м" }
-        return "\(minutes / 60)ч"
+        if minutes < 60 { return "\(minutes)m" }
+        return "\(minutes / 60)h"
     }
 }
 

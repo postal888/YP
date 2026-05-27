@@ -10,14 +10,14 @@ enum AppTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    func label(strings: AppStrings) -> String {
         switch self {
-        case .home: return "Home"
-        case .study: return "Study"
-        case .reader: return "Reader"
-        case .video: return "Video"
-        case .dictionary: return "Словарь"
-        case .account: return "Аккаунт"
+        case .home: return strings.tabHome
+        case .study: return strings.tabStudy
+        case .reader: return strings.tabReader
+        case .video: return strings.tabVideo
+        case .dictionary: return strings.tabDictionary
+        case .account: return strings.tabAccount
         }
     }
 

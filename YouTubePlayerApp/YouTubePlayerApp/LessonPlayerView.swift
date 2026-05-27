@@ -11,7 +11,9 @@ struct LessonPlayerView: View {
 
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject private var vocabularyStore: VocabularyStore
+    @EnvironmentObject private var appSettings: AppSettings
 
+    private var strings: AppStrings { appSettings.strings }
     private var playerHolder: YouTubePlayerHolder { session.playerHolder }
     @State private var watchedSeconds: Double = 0
     @State private var lessonCompleted = false
@@ -28,7 +30,6 @@ struct LessonPlayerView: View {
     @State private var isTranslatingWord = false
     @State private var subtitleRefreshID = 0
     @State private var recentTranslations: [WordTranslationEntry] = []
-    @State private var translatedWordKeys: Set<String> = []
 
     var body: some View {
         ScrollView {
@@ -79,7 +80,7 @@ struct LessonPlayerView: View {
             .buttonStyle(.plain)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Урок")
+                Text(strings.lessonTitle)
                     .font(.headline)
                     .foregroundStyle(PortTheme.heading)
                 Text(statusText)
@@ -124,7 +125,7 @@ struct LessonPlayerView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(PortTheme.danger)
-                    Text("Ошибка плеера")
+                    Text(strings.playerErrorTitle)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PortTheme.heading)
                     Text(String(describing: error))
@@ -173,7 +174,7 @@ struct LessonPlayerView: View {
             controlButton(icon: "gobackward.10", label: "−10") {
                 playerHolder.seek(to: max(0, currentTime - 10))
             }
-            controlButton(icon: playerHolder.isPlaying ? "pause.fill" : "play.fill", label: playerHolder.isPlaying ? "Пауза" : "Play") {
+            controlButton(icon: playerHolder.isPlaying ? "pause.fill" : "play.fill", label: playerHolder.isPlaying ? strings.pause : strings.play) {
                 if playerHolder.isPlaying {
                     playerHolder.pause()
                 } else {
@@ -207,7 +208,7 @@ struct LessonPlayerView: View {
 
     private var languagePicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Язык субтитров")
+            Text(strings.subtitleLanguage)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PortTheme.textSubtle)
 
@@ -228,12 +229,12 @@ struct LessonPlayerView: View {
     private var subtitlesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Субтитры")
+                Text(strings.subtitles)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PortTheme.textSubtle)
                 Spacer()
                 if !subtitleLines.isEmpty {
-                    Text("\(subtitleLines.count) строк")
+                    Text("\(subtitleLines.count) \(strings.lines)")
                         .font(.caption)
                         .foregroundStyle(PortTheme.textMuted)
                 }
@@ -242,7 +243,7 @@ struct LessonPlayerView: View {
             if isLoadingSubtitles {
                 HStack(spacing: 10) {
                     ProgressView().tint(PortTheme.accent)
-                    Text("Загрузка субтитров…")
+                    Text(strings.loadingSubtitles)
                         .font(.subheadline)
                         .foregroundStyle(PortTheme.textMuted)
                 }
@@ -261,9 +262,10 @@ struct LessonPlayerView: View {
                     lines: subtitleLines,
                     playbackSec: currentTime,
                     sourceLanguage: selectedLanguage.rawValue,
-                    translatedKeys: translatedWordKeys,
+                    translatedKeys: vocabularyStore.lookupKeys,
                     folderKey: VocabularyFolderKey.youtube(videoID),
                     folderTitle: session.selectedVideoTitle,
+                    interactionToken: subtitleRefreshID,
                     translationPreview: $translationPreview,
                     isTranslating: $isTranslatingWord,
                     onTimestampTap: { line in
@@ -289,7 +291,7 @@ struct LessonPlayerView: View {
                     recentTranslations = []
                 }
             } else {
-                Text("Субтитры не загружены.")
+                Text(strings.subtitlesNotLoaded)
                     .font(.subheadline)
                     .foregroundStyle(PortTheme.textMuted)
                     .padding(14)
@@ -299,7 +301,7 @@ struct LessonPlayerView: View {
     }
 
     private var completionBadge: some View {
-        Label("Видео просмотрено до конца", systemImage: "checkmark.circle.fill")
+        Label(strings.videoCompleted, systemImage: "checkmark.circle.fill")
             .font(.subheadline.weight(.medium))
             .foregroundStyle(PortTheme.successText)
             .padding(14)
@@ -323,7 +325,6 @@ struct LessonPlayerView: View {
         duration = 0
         translationPreview = nil
         recentTranslations = []
-        translatedWordKeys = []
     }
 
     @MainActor
@@ -361,7 +362,6 @@ struct LessonPlayerView: View {
     }
 
     private func rememberTranslation(_ entry: WordTranslationEntry) {
-        translatedWordKeys.insert(entry.id)
         recentTranslations.removeAll { $0.id == entry.id }
         recentTranslations.insert(entry, at: 0)
         if recentTranslations.count > 20 {
@@ -376,4 +376,6 @@ struct LessonPlayerView: View {
         session: YouTubeSessionStore(),
         errorLog: AppErrorLog()
     )
+    .environmentObject(VocabularyStore())
+    .environmentObject(AppSettings())
 }

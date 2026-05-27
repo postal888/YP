@@ -9,6 +9,7 @@ final class AppSettings: ObservableObject {
         static let useChatGPT = "portulearn.settings.useChatGPTTranslation"
         static let backendURL = "portulearn.settings.backendBaseURL"
         static let backgroundVideoPlayback = "portulearn.settings.backgroundVideoPlayback"
+        static let appLanguage = "portulearn.settings.appLanguage"
     }
 
     @Published var useChatGPTTranslation: Bool {
@@ -30,10 +31,26 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(backgroundVideoPlayback, forKey: Keys.backgroundVideoPlayback) }
     }
 
+    @Published var appLanguage: AppLanguage {
+        didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: Keys.appLanguage) }
+    }
+
     init() {
         useChatGPTTranslation = UserDefaults.standard.bool(forKey: Keys.useChatGPT)
         backendBaseURL = UserDefaults.standard.string(forKey: Keys.backendURL) ?? Self.defaultBackendURL
         backgroundVideoPlayback = UserDefaults.standard.bool(forKey: Keys.backgroundVideoPlayback)
+        if
+            let raw = UserDefaults.standard.string(forKey: Keys.appLanguage),
+            let language = AppLanguage(rawValue: raw)
+        {
+            appLanguage = language
+        } else {
+            appLanguage = .english
+        }
+    }
+
+    var strings: AppStrings {
+        AppStrings(language: appLanguage)
     }
 
     var normalizedBackendURL: String {
