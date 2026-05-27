@@ -65,6 +65,9 @@
 		2A0000010000000000000093 /* DictionaryWordRecorderPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000092 /* DictionaryWordRecorderPanel.swift */; };
 		2A0000010000000000000095 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000094 /* ShareSheet.swift */; };
 		2A0000010000000000000097 /* DictionaryCSVExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000096 /* DictionaryCSVExportService.swift */; };
+		2A0000010000000000000099 /* MediaPlaybackAudioSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000098 /* MediaPlaybackAudioSession.swift */; };
+		2A000001000000000000009B /* DictionaryFolderRecordingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000009A /* DictionaryFolderRecordingViewModel.swift */; };
+		2A000001000000000000009D /* DictionaryFolderRecorderPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000001000000000000009C /* DictionaryFolderRecorderPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -126,6 +129,9 @@
 		2A0000010000000000000092 /* DictionaryWordRecorderPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryWordRecorderPanel.swift; sourceTree = "<group>"; };
 		2A0000010000000000000094 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		2A0000010000000000000096 /* DictionaryCSVExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryCSVExportService.swift; sourceTree = "<group>"; };
+		2A0000010000000000000098 /* MediaPlaybackAudioSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlaybackAudioSession.swift; sourceTree = "<group>"; };
+		2A000001000000000000009A /* DictionaryFolderRecordingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryFolderRecordingViewModel.swift; sourceTree = "<group>"; };
+		2A000001000000000000009C /* DictionaryFolderRecorderPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryFolderRecorderPanel.swift; sourceTree = "<group>"; };
 		2A000001000000000000007B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -223,6 +229,7 @@
 				2A000001000000000000008C /* AudioTranscodingService.swift */,
 				2A000001000000000000008E /* DictionaryAudioExportService.swift */,
 				2A0000010000000000000096 /* DictionaryCSVExportService.swift */,
+				2A0000010000000000000098 /* MediaPlaybackAudioSession.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -273,6 +280,8 @@
 				2A000001000000000000007C /* VocabularyFolderRenameSheet.swift */,
 				2A0000010000000000000090 /* DictionaryWordRecordingViewModel.swift */,
 				2A0000010000000000000092 /* DictionaryWordRecorderPanel.swift */,
+				2A000001000000000000009A /* DictionaryFolderRecordingViewModel.swift */,
+				2A000001000000000000009C /* DictionaryFolderRecorderPanel.swift */,
 				2A0000010000000000000094 /* ShareSheet.swift */,
 			);
 			path = Dictionary;
@@ -464,6 +473,9 @@
 				2A0000010000000000000093 /* DictionaryWordRecorderPanel.swift in Sources */,
 				2A0000010000000000000095 /* ShareSheet.swift in Sources */,
 				2A0000010000000000000097 /* DictionaryCSVExportService.swift in Sources */,
+				2A0000010000000000000099 /* MediaPlaybackAudioSession.swift in Sources */,
+				2A000001000000000000009B /* DictionaryFolderRecordingViewModel.swift in Sources */,
+				2A000001000000000000009D /* DictionaryFolderRecorderPanel.swift in Sources */,
 				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
 				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
 			);

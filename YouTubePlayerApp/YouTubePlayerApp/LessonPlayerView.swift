@@ -26,6 +26,7 @@ struct LessonPlayerView: View {
     @State private var statusText: String = "Ожидание"
     @State private var translationPreview: String?
     @State private var isTranslatingWord = false
+    @State private var subtitleRefreshID = 0
     @State private var recentTranslations: [WordTranslationEntry] = []
     @State private var translatedWordKeys: Set<String> = []
 
@@ -52,6 +53,11 @@ struct LessonPlayerView: View {
                 key: VocabularyFolderKey.youtube(videoID),
                 defaultTitle: title
             )
+        }
+        .onChange(of: session.videoTabActivationToken) { _ in
+            subtitleRefreshID += 1
+            translationPreview = nil
+            isTranslatingWord = false
         }
         .task(id: transcriptKey) {
             await loadSubtitlesIfNeeded()
@@ -271,6 +277,7 @@ struct LessonPlayerView: View {
                         errorLog.add(source: "Translate", message: message)
                     }
                 )
+                .id(subtitleRefreshID)
                 .frame(minHeight: 240, maxHeight: 380)
 
                 RecentTranslationsView(

@@ -38,6 +38,12 @@ struct ContentView: View {
             if newTab != .video, !appSettings.backgroundVideoPlayback {
                 youtubeSession.pause()
             }
+            if newTab == .video {
+                youtubeSession.notifyVideoTabActivated()
+            } else if newTab != .dictionary {
+                WordTTSService.shared.stop()
+                DictionaryAudioPlayerService.shared.stop()
+            }
         }
         .onChange(of: scenePhase) { phase in
             if phase == .background, !appSettings.backgroundVideoPlayback {

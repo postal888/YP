@@ -5,9 +5,11 @@ import Combine
 final class VocabularyStore: ObservableObject {
     @Published private(set) var cards: [VocabularyCard] = []
     @Published private(set) var folderTitles: [String: String] = [:]
+    @Published private(set) var folderRecordings: [String: DictionaryWordRecording] = [:]
 
     private let storageKey = "portulearn.vocabulary.cards"
     private let folderTitlesKey = "portulearn.vocabulary.folderTitles"
+    private let folderRecordingsKey = "portulearn.vocabulary.folderRecordings"
 
     init() {
         load()
@@ -156,6 +158,25 @@ final class VocabularyStore: ObservableObject {
         cards.filter { ids.contains($0.id) }
     }
 
+    func hasFolderRecording(for folderKey: String) -> Bool {
+        folderRecordings[folderKey] != nil && DictionaryAudioStorage.folderRecordingExists(for: folderKey)
+    }
+
+    func folderRecording(for folderKey: String) -> DictionaryWordRecording? {
+        folderRecordings[folderKey]
+    }
+
+    func setFolderRecording(for folderKey: String, recording: DictionaryWordRecording) {
+        folderRecordings[folderKey] = recording
+        persistFolderRecordings()
+    }
+
+    func clearFolderRecording(for folderKey: String) {
+        DictionaryAudioStorage.deleteFolderRecording(for: folderKey)
+        folderRecordings.removeValue(forKey: folderKey)
+        persistFolderRecordings()
+    }
+
     func remove(at offsets: IndexSet) {
         for index in offsets {
             DictionaryAudioStorage.deleteRecording(for: cards[index].id)
@@ -227,7 +248,29 @@ final class VocabularyStore: ObservableObject {
             folderTitles = [:]
         }
 
+        loadFolderRecordings()
+
         migrateLegacyFolderTitlesIfNeeded()
+    }
+
+    private func persistFolderRecordings() {
+        guard let data = try? JSONEncoder().encode(folderRecordings) else { return }
+        UserDefaults.standard.set(data, forKey: folderRecordingsKey)
+    }
+
+    private func loadFolderRecordings() {
+        if
+            let data = UserDefaults.standard.data(forKey: folderRecordingsKey),
+            let decoded = try? JSONDecoder().decode([String: DictionaryWordRecording].self, from: data)
+        {
+            let filtered = decoded.filter { DictionaryAudioStorage.folderRecordingExists(for: $0.key) }
+            folderRecordings = filtered
+            if filtered.count != decoded.count {
+                persistFolderRecordings()
+            }
+        } else {
+            folderRecordings = [:]
+        }
     }
 
     private func migrateLegacyFolderTitlesIfNeeded() {

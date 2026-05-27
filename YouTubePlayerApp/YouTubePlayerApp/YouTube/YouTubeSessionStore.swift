@@ -5,6 +5,7 @@ import Combine
 final class YouTubeSessionStore: ObservableObject {
     @Published var selectedVideoID: String?
     @Published private(set) var selectedVideoTitle: String?
+    @Published private(set) var videoTabActivationToken = UUID()
 
     let playerHolder = YouTubePlayerHolder()
 
@@ -42,6 +43,11 @@ final class YouTubeSessionStore: ObservableObject {
 
     func applyBackgroundPlaybackPolicy(enabled: Bool) {
         playerHolder.applyBackgroundPlaybackPolicy(enabled: enabled)
+    }
+
+    func notifyVideoTabActivated() {
+        videoTabActivationToken = UUID()
+        MediaPlaybackAudioSession.activateForVideoPlayback()
     }
 
     private func loadVideoTitleIfNeeded(videoID: String) async {

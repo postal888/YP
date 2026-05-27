@@ -25,9 +25,10 @@ enum DictionaryAudioRecorderError: LocalizedError {
 }
 
 struct DictionaryRecordingResult {
-    let wordID: UUID
     let url: URL
     let duration: TimeInterval
+    let wordID: UUID?
+    let folderKey: String?
 }
 
 @MainActor
@@ -36,9 +37,11 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
 
     @Published private(set) var isRecording = false
     @Published private(set) var recordingWordID: UUID?
+    @Published private(set) var recordingFolderKey: String?
 
     private var recorder: AVAudioRecorder?
     private var activeWordID: UUID?
+    private var activeFolderKey: String?
 
     func requestMicrophonePermission() async -> Bool {
         await withCheckedContinuation { continuation in
@@ -49,6 +52,73 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
     }
 
     func startRecording(for wordID: UUID) async throws {
+        try await startRecording(
+            at: DictionaryAudioStorage.recordingURL(for: wordID),
+            wordID: wordID,
+            folderKey: nil
+        )
+    }
+
+    func startRecording(forFolderKey folderKey: String) async throws {
+        try await startRecording(
+            at: DictionaryAudioStorage.folderRecordingURL(for: folderKey),
+            wordID: nil,
+            folderKey: folderKey
+        )
+    }
+
+    @discardableResult
+    func stopRecording() throws -> DictionaryRecordingResult {
+        guard isRecording, let recorder else {
+            throw DictionaryAudioRecorderError.notRecording
+        }
+
+        recorder.stop()
+        let duration = max(recorder.currentTime, 0)
+        let url = recorder.url
+        let wordID = activeWordID
+        let folderKey = activeFolderKey
+
+        self.recorder = nil
+        activeWordID = nil
+        activeFolderKey = nil
+        isRecording = false
+        recordingWordID = nil
+        recordingFolderKey = nil
+
+        return DictionaryRecordingResult(
+            url: url,
+            duration: duration,
+            wordID: wordID,
+            folderKey: folderKey
+        )
+    }
+
+    func cancelRecording(for wordID: UUID) {
+        guard recordingWordID == wordID else { return }
+        cancelActiveRecording(deleteFile: true, wordID: wordID, folderKey: nil)
+    }
+
+    func cancelRecording(forFolderKey folderKey: String) {
+        guard recordingFolderKey == folderKey else { return }
+        cancelActiveRecording(deleteFile: true, wordID: nil, folderKey: folderKey)
+    }
+
+    func deleteRecording(for wordID: UUID) {
+        if recordingWordID == wordID {
+            cancelActiveRecording(deleteFile: false, wordID: wordID, folderKey: nil)
+        }
+        DictionaryAudioStorage.deleteRecording(for: wordID)
+    }
+
+    func deleteFolderRecording(for folderKey: String) {
+        if recordingFolderKey == folderKey {
+            cancelActiveRecording(deleteFile: false, wordID: nil, folderKey: folderKey)
+        }
+        DictionaryAudioStorage.deleteFolderRecording(for: folderKey)
+    }
+
+    private func startRecording(at destination: URL, wordID: UUID?, folderKey: String?) async throws {
         guard !isRecording else { throw DictionaryAudioRecorderError.alreadyRecording }
 
         let granted = await requestMicrophonePermission()
@@ -64,7 +134,9 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
             throw DictionaryAudioRecorderError.sessionSetupFailed(error.localizedDescription)
         }
 
-        let destination = DictionaryAudioStorage.recordingURL(for: wordID)
+        let folder = destination.deletingLastPathComponent()
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
         if FileManager.default.fileExists(atPath: destination.path) {
             try? FileManager.default.removeItem(at: destination)
         }
@@ -85,8 +157,10 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
             }
             recorder = audioRecorder
             activeWordID = wordID
+            activeFolderKey = folderKey
             isRecording = true
             recordingWordID = wordID
+            recordingFolderKey = folderKey
         } catch let error as DictionaryAudioRecorderError {
             throw error
         } catch {
@@ -94,44 +168,22 @@ final class DictionaryAudioRecorderService: NSObject, ObservableObject {
         }
     }
 
-    @discardableResult
-    func stopRecording() throws -> DictionaryRecordingResult {
-        guard isRecording, let recorder, let wordID = activeWordID else {
-            throw DictionaryAudioRecorderError.notRecording
-        }
-
-        recorder.stop()
-        let duration = max(recorder.currentTime, 0)
-        let url = recorder.url
-
-        self.recorder = nil
+    private func cancelActiveRecording(deleteFile: Bool, wordID: UUID?, folderKey: String?) {
+        recorder?.stop()
+        recorder = nil
         activeWordID = nil
+        activeFolderKey = nil
         isRecording = false
         recordingWordID = nil
+        recordingFolderKey = nil
 
-        return DictionaryRecordingResult(wordID: wordID, url: url, duration: duration)
-    }
-
-    func cancelRecording(for wordID: UUID) {
-        if recordingWordID == wordID {
-            recorder?.stop()
-            recorder = nil
-            activeWordID = nil
-            isRecording = false
-            recordingWordID = nil
-            DictionaryAudioStorage.deleteRecording(for: wordID)
+        if deleteFile {
+            if let wordID {
+                DictionaryAudioStorage.deleteRecording(for: wordID)
+            } else if let folderKey {
+                DictionaryAudioStorage.deleteFolderRecording(for: folderKey)
+            }
         }
-    }
-
-    func deleteRecording(for wordID: UUID) {
-        if recordingWordID == wordID {
-            recorder?.stop()
-            recorder = nil
-            activeWordID = nil
-            isRecording = false
-            recordingWordID = nil
-        }
-        DictionaryAudioStorage.deleteRecording(for: wordID)
     }
 }
 
@@ -140,8 +192,10 @@ extension DictionaryAudioRecorderService: AVAudioRecorderDelegate {
         Task { @MainActor in
             self.recorder = nil
             self.activeWordID = nil
+            self.activeFolderKey = nil
             self.isRecording = false
             self.recordingWordID = nil
+            self.recordingFolderKey = nil
         }
     }
 }

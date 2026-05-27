@@ -21,10 +21,11 @@ final class DictionaryAudioPlayerService: NSObject, ObservableObject {
 
     @Published private(set) var isPlaying = false
     @Published private(set) var playingWordID: UUID?
+    @Published private(set) var playingFolderKey: String?
 
     private var player: AVAudioPlayer?
 
-    func play(url: URL, wordID: UUID) throws {
+    func play(url: URL, wordID: UUID? = nil, folderKey: String? = nil) throws {
         stop()
         WordTTSService.shared.stop()
 
@@ -46,6 +47,7 @@ final class DictionaryAudioPlayerService: NSObject, ObservableObject {
             player = audioPlayer
             isPlaying = true
             playingWordID = wordID
+            playingFolderKey = folderKey
         } catch let error as DictionaryAudioPlayerError {
             throw error
         } catch {
@@ -58,6 +60,7 @@ final class DictionaryAudioPlayerService: NSObject, ObservableObject {
         player = nil
         isPlaying = false
         playingWordID = nil
+        playingFolderKey = nil
     }
 }
 
@@ -67,6 +70,7 @@ extension DictionaryAudioPlayerService: AVAudioPlayerDelegate {
             self.player = nil
             self.isPlaying = false
             self.playingWordID = nil
+            self.playingFolderKey = nil
         }
     }
 }

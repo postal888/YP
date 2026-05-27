@@ -30,6 +30,32 @@ enum DictionaryAudioStorage {
         try? FileManager.default.removeItem(at: url)
     }
 
+    static let folderRecordingsDirectory: URL = {
+        let folder = recordingsDirectory.appendingPathComponent("folders", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder
+    }()
+
+    static func folderRecordingURL(for folderKey: String) -> URL {
+        let safeName = folderKey
+            .replacingOccurrences(of: ":", with: "_")
+            .replacingOccurrences(of: "/", with: "_")
+        return folderRecordingsDirectory.appendingPathComponent("\(safeName).m4a")
+    }
+
+    static func folderRecordingExists(for folderKey: String) -> Bool {
+        FileManager.default.fileExists(atPath: folderRecordingURL(for: folderKey).path)
+    }
+
+    static func deleteFolderRecording(for folderKey: String) {
+        let url = folderRecordingURL(for: folderKey)
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    static func sanitizedFolderExportName(from folderTitle: String, fileExtension: String) -> String {
+        sanitizedExportName(from: folderTitle, fileExtension: fileExtension)
+    }
+
     static func sanitizedExportName(from sourceWord: String, fileExtension: String) -> String {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
         let trimmed = sourceWord.trimmingCharacters(in: .whitespacesAndNewlines)

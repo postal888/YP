@@ -10,6 +10,7 @@ struct DictionaryView: View {
     @State private var searchText = ""
     @State private var editingCard: VocabularyCard?
     @State private var recordingSession: DictionaryRecordingSession?
+    @State private var folderRecordingSession: DictionaryFolderRecordingSession?
     @State private var renamingFolder: VocabularyFolderGroup?
     @State private var expandedFolderKeys: Set<String> = []
     @State private var csvShareItem: ShareableFile?
@@ -79,6 +80,13 @@ struct DictionaryView: View {
             }
             .sheet(item: $recordingSession) { session in
                 DictionaryWordRecorderPanel(
+                    session: session,
+                    vocabularyStore: vocabularyStore,
+                    appSettings: appSettings
+                )
+            }
+            .sheet(item: $folderRecordingSession) { session in
+                DictionaryFolderRecorderPanel(
                     session: session,
                     vocabularyStore: vocabularyStore,
                     appSettings: appSettings
@@ -337,9 +345,16 @@ struct DictionaryView: View {
                             .foregroundStyle(PortTheme.heading)
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
-                        Text("\(folder.cards.count) слов")
-                            .font(.caption)
-                            .foregroundStyle(PortTheme.textMuted)
+                        HStack(spacing: 8) {
+                            Text("\(folder.cards.count) слов")
+                                .font(.caption)
+                                .foregroundStyle(PortTheme.textMuted)
+                            if vocabularyStore.hasFolderRecording(for: folder.key) {
+                                Label("запись", systemImage: "mic.fill")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(PortTheme.accent)
+                            }
+                        }
                     }
 
                     Spacer()
@@ -350,6 +365,42 @@ struct DictionaryView: View {
                 }
             }
             .buttonStyle(.plain)
+
+            if isSelectionMode {
+                Button {
+                    selectAll(in: folder)
+                } label: {
+                    Text("Все")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PortTheme.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(PortTheme.surfaceInput)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button {
+                speakFolder(folder)
+            } label: {
+                Image(systemName: "speaker.wave.2")
+                    .font(.body)
+                    .foregroundStyle(PortTheme.accent)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Озвучить папку")
+
+            Button {
+                openFolderRecorder(for: folder)
+            } label: {
+                Image(systemName: vocabularyStore.hasFolderRecording(for: folder.key) ? "mic.fill" : "mic")
+                    .font(.body)
+                    .foregroundStyle(vocabularyStore.hasFolderRecording(for: folder.key) ? PortTheme.accent : PortTheme.textSubtle)
+            }
+            .buttonStyle(.plain)
+            .disabled(recorderService.isRecording && recorderService.recordingFolderKey != folder.key)
+            .accessibilityLabel("Диктофон папки")
 
             Button {
                 renamingFolder = folder
@@ -363,6 +414,35 @@ struct DictionaryView: View {
         }
         .padding(12)
         .portCard()
+    }
+
+    private func selectAll(in folder: VocabularyFolderGroup) {
+        for card in folder.cards {
+            selectedCardIDs.insert(card.id)
+        }
+    }
+
+    private func cardsForFolderPlayback(_ folder: VocabularyFolderGroup) -> [VocabularyCard] {
+        let selectedInFolder = folder.cards.filter { selectedCardIDs.contains($0.id) }
+        if isSelectionMode, !selectedInFolder.isEmpty {
+            return selectedInFolder
+        }
+        return folder.cards
+    }
+
+    private func speakFolder(_ folder: VocabularyFolderGroup) {
+        let cards = cardsForFolderPlayback(folder)
+        guard !cards.isEmpty else { return }
+        let entries = DictionaryWordRecordingViewModel.ttsEntries(for: cards)
+        ttsService.speakSequence(entries, settings: appSettings)
+    }
+
+    private func openFolderRecorder(for folder: VocabularyFolderGroup) {
+        let playbackCards = cardsForFolderPlayback(folder)
+        folderRecordingSession = DictionaryFolderRecordingSession(
+            folder: folder,
+            playbackCards: playbackCards
+        )
     }
 
     private func toggleFolder(_ key: String) {
