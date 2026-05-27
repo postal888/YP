@@ -191,7 +191,7 @@ struct QuizPanelView: View {
         typedAnswer = ""
 
         if mode == .multipleChoice {
-            var pool = vocabularyStore.cards.filter { $0.id != card.id }.shuffled()
+            let pool = vocabularyStore.cards.filter { $0.id != card.id }.shuffled()
             let distractors = Array(pool.prefix(3))
             options = ([card] + distractors).shuffled()
         }

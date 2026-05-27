@@ -9,18 +9,22 @@ struct ImportedBook: Identifiable, Codable, Equatable {
     var lastOpenedAt: Date?
 
     var localURL: URL {
-        BookLibraryStore.booksDirectory.appendingPathComponent(fileName)
+        BookLibraryPaths.booksDirectory.appendingPathComponent(fileName)
     }
 }
 
-@MainActor
-final class BookLibraryStore: ObservableObject {
+enum BookLibraryPaths {
     static let booksDirectory: URL = {
         let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let folder = base.appendingPathComponent("Books", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder
     }()
+}
+
+@MainActor
+final class BookLibraryStore: ObservableObject {
+    static var booksDirectory: URL { BookLibraryPaths.booksDirectory }
 
     @Published private(set) var books: [ImportedBook] = []
 

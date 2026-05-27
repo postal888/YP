@@ -293,7 +293,7 @@ struct HomeView: View {
             return
         }
 
-        if let videoID = directVideoID(from: raw) {
+        if directVideoID(from: raw) != nil {
             suggestionItems = []
             return
         }

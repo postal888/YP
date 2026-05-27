@@ -23,12 +23,22 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
     private let playerService: DictionaryAudioPlayerService
     private let exportService: DictionaryAudioExportService
 
+    init(card: VocabularyCard, vocabularyStore: VocabularyStore) {
+        self.init(
+            card: card,
+            vocabularyStore: vocabularyStore,
+            recorderService: DictionaryAudioRecorderService.shared,
+            playerService: DictionaryAudioPlayerService.shared,
+            exportService: DictionaryAudioExportService.shared
+        )
+    }
+
     init(
         card: VocabularyCard,
         vocabularyStore: VocabularyStore,
-        recorderService: DictionaryAudioRecorderService = .shared,
-        playerService: DictionaryAudioPlayerService = .shared,
-        exportService: DictionaryAudioExportService = .shared
+        recorderService: DictionaryAudioRecorderService,
+        playerService: DictionaryAudioPlayerService,
+        exportService: DictionaryAudioExportService
     ) {
         self.card = card
         self.vocabularyStore = vocabularyStore
