@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 
+@MainActor
 enum MediaPlaybackAudioSession {
     static func activateForVideoPlayback() {
         let session = AVAudioSession.sharedInstance()
