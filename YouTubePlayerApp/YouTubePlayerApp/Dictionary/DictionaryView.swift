@@ -22,6 +22,8 @@ struct DictionaryView: View {
     @State private var showRecordingsLibrary = false
 
     private var strings: AppStrings { appSettings.strings }
+
+    private var filteredCards: [VocabularyCard] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !query.isEmpty else { return vocabularyStore.cards }
         return vocabularyStore.cards.filter { card in
