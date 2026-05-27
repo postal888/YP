@@ -3,7 +3,7 @@ import Combine
 
 @MainActor
 final class AppSettings: ObservableObject {
-    static let defaultBackendURL = "https://gentechnet.com"
+    nonisolated static let defaultBackendURL = "https://gentechnet.com"
 
     private enum Keys {
         static let useChatGPT = "portulearn.settings.useChatGPTTranslation"

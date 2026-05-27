@@ -140,23 +140,24 @@ struct PDFReaderScreen: View {
                     if let activeWord,
                        let translationText,
                        !isTranslating,
-                       translationError == nil,
-                       let translation = extractedTranslation(from: translationText),
-                       !translation.isEmpty {
-                        if didSaveCurrentWord || vocabularyStore.contains(source: activeWord.lookupKey) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.body)
-                                .foregroundStyle(PortTheme.accent)
-                        } else {
-                            Button {
-                                saveToVocabulary(word: activeWord, translation: translation)
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
+                       translationError == nil {
+                        let translation = extractedTranslation(from: translationText)
+                        if !translation.isEmpty {
+                            if didSaveCurrentWord || vocabularyStore.contains(source: activeWord.lookupKey) {
+                                Image(systemName: "checkmark.circle.fill")
                                     .font(.body)
                                     .foregroundStyle(PortTheme.accent)
+                            } else {
+                                Button {
+                                    saveToVocabulary(word: activeWord, translation: translation)
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.body)
+                                        .foregroundStyle(PortTheme.accent)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Добавить в словарь")
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Добавить в словарь")
                         }
                     }
                 }
