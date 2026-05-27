@@ -2,13 +2,15 @@ import SwiftUI
 import UIKit
 
 @MainActor
-struct DictionaryWordRecorderPanel: View {
+struct DictionaryWordRecorderContent: View {
     @StateObject private var viewModel: DictionaryWordRecordingViewModel
     @ObservedObject private var playerService = DictionaryAudioPlayerService.shared
     @ObservedObject private var recorderService = DictionaryAudioRecorderService.shared
-    @Environment(\.presentationMode) private var presentationMode
 
-    init(card: VocabularyCard, vocabularyStore: VocabularyStore) {
+    private let showsWordHeader: Bool
+
+    init(card: VocabularyCard, vocabularyStore: VocabularyStore, showsWordHeader: Bool = true) {
+        self.showsWordHeader = showsWordHeader
         _viewModel = StateObject(
             wrappedValue: DictionaryWordRecordingViewModel(
                 card: card,
@@ -18,69 +20,56 @@ struct DictionaryWordRecorderPanel: View {
     }
 
     var body: some View {
-        NavigationView {
-            VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 16) {
+            if showsWordHeader {
                 wordHeader
-                recorderControls
-                Spacer(minLength: 0)
             }
-            .padding(16)
-            .background(PortTheme.background.ignoresSafeArea())
-            .navigationTitle("Диктофон")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Закрыть") {
-                        presentationMode.wrappedValue.dismiss()
+            recorderControls
+        }
+        .onAppear {
+            viewModel.syncPhaseFromStore()
+        }
+        .onDisappear {
+            viewModel.cleanupOnDismiss()
+        }
+        .confirmationDialog("Экспорт записи", isPresented: $viewModel.showExportOptions, titleVisibility: .visible) {
+            Button("Export as M4A") {
+                viewModel.exportAsM4A()
+            }
+            Button("Export as MP3") {
+                viewModel.exportAsMP3()
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Удалить запись?",
+            isPresented: $viewModel.showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Удалить", role: .destructive) {
+                viewModel.deleteRecording()
+            }
+            Button("Отмена", role: .cancel) {}
+        } message: {
+            Text("Запись будет удалена с устройства без возможности восстановления.")
+        }
+        .alert(viewModel.alertTitle, isPresented: $viewModel.showAlert) {
+            if viewModel.alertTitle == "Нет доступа к микрофону" {
+                Button("Настройки") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
                     }
-                }
-            }
-            .onAppear {
-                viewModel.syncPhaseFromStore()
-            }
-            .onDisappear {
-                viewModel.cleanupOnDismiss()
-            }
-            .confirmationDialog("Экспорт записи", isPresented: $viewModel.showExportOptions, titleVisibility: .visible) {
-                Button("Export as M4A") {
-                    viewModel.exportAsM4A()
-                }
-                Button("Export as MP3") {
-                    viewModel.exportAsMP3()
-                }
-                Button("Cancel", role: .cancel) {}
-            }
-            .confirmationDialog(
-                "Удалить запись?",
-                isPresented: $viewModel.showDeleteConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Удалить", role: .destructive) {
-                    viewModel.deleteRecording()
                 }
                 Button("Отмена", role: .cancel) {}
-            } message: {
-                Text("Запись будет удалена с устройства без возможности восстановления.")
+            } else {
+                Button("OK", role: .cancel) {}
             }
-            .alert(viewModel.alertTitle, isPresented: $viewModel.showAlert) {
-                if viewModel.alertTitle == "Нет доступа к микрофону" {
-                    Button("Настройки") {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
-                        }
-                    }
-                    Button("Отмена", role: .cancel) {}
-                } else {
-                    Button("OK", role: .cancel) {}
-                }
-            } message: {
-                Text(viewModel.alertMessage)
-            }
-            .sheet(item: $viewModel.shareItem) { item in
-                ShareSheet(items: [item.url])
-            }
+        } message: {
+            Text(viewModel.alertMessage)
         }
-        .navigationViewStyle(.stack)
+        .sheet(item: $viewModel.shareItem) { item in
+            ShareSheet(items: [item.url])
+        }
     }
 
     private var wordHeader: some View {
@@ -124,7 +113,7 @@ struct DictionaryWordRecorderPanel: View {
             Button {
                 viewModel.startRecording()
             } label: {
-                Label("Record", systemImage: "mic.fill")
+                Label("Записать", systemImage: "mic.fill")
             }
             .buttonStyle(PortPrimaryButtonStyle())
         }
@@ -147,7 +136,7 @@ struct DictionaryWordRecorderPanel: View {
             Button {
                 viewModel.stopRecording()
             } label: {
-                Label("Stop", systemImage: "stop.fill")
+                Label("Стоп", systemImage: "stop.fill")
             }
             .buttonStyle(PortPrimaryButtonStyle())
         }
@@ -162,14 +151,14 @@ struct DictionaryWordRecorderPanel: View {
                     Button {
                         viewModel.stopPlayback()
                     } label: {
-                        Label("Stop playback", systemImage: "stop.fill")
+                        Label("Стоп", systemImage: "stop.fill")
                     }
                     .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
                 } else {
                     Button {
                         viewModel.playRecording()
                     } label: {
-                        Label("Play", systemImage: "play.fill")
+                        Label("Слушать", systemImage: "play.fill")
                     }
                     .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
                 }
@@ -177,7 +166,7 @@ struct DictionaryWordRecorderPanel: View {
                 Button {
                     viewModel.showExportOptions = true
                 } label: {
-                    Label("Export", systemImage: "square.and.arrow.up")
+                    Label("Экспорт", systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
             }
@@ -192,14 +181,14 @@ struct DictionaryWordRecorderPanel: View {
             Button(role: .destructive) {
                 viewModel.showDeleteConfirmation = true
             } label: {
-                Label("Delete", systemImage: "trash")
+                Label("Удалить", systemImage: "trash")
             }
             .buttonStyle(DictionaryRecorderSecondaryButtonStyle())
 
             Button {
                 viewModel.startRecording()
             } label: {
-                Label("Record again", systemImage: "mic.fill")
+                Label("Записать снова", systemImage: "mic.fill")
             }
             .buttonStyle(PortPrimaryButtonStyle())
         }
@@ -215,7 +204,35 @@ struct DictionaryWordRecorderPanel: View {
     }
 }
 
-private struct DictionaryRecorderSecondaryButtonStyle: ButtonStyle {
+@MainActor
+struct DictionaryWordRecorderPanel: View {
+    let card: VocabularyCard
+    let vocabularyStore: VocabularyStore
+
+    @Environment(\.presentationMode) private var presentationMode
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                DictionaryWordRecorderContent(card: card, vocabularyStore: vocabularyStore)
+                    .padding(16)
+            }
+            .background(PortTheme.background.ignoresSafeArea())
+            .navigationTitle("Диктофон")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Закрыть") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+        }
+        .navigationViewStyle(.stack)
+    }
+}
+
+struct DictionaryRecorderSecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))

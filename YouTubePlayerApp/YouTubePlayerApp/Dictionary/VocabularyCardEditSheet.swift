@@ -5,6 +5,7 @@ struct VocabularyCardEditSheet: View {
     let card: VocabularyCard
     let onSave: (String, String, String?) -> Void
 
+    @EnvironmentObject private var vocabularyStore: VocabularyStore
     @Environment(\.presentationMode) private var presentationMode
 
     @State private var source: String
@@ -26,6 +27,18 @@ struct VocabularyCardEditSheet: View {
                     field(title: "Слово", text: $source)
                     field(title: "Перевод", text: $translation)
                     field(title: "Пример", text: $example)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Диктофон")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PortTheme.textMuted)
+
+                        DictionaryWordRecorderContent(
+                            card: card,
+                            vocabularyStore: vocabularyStore,
+                            showsWordHeader: false
+                        )
+                    }
                 }
                 .padding(16)
             }
@@ -74,6 +87,7 @@ struct VocabularyCardEditSheet_Previews: PreviewProvider {
         VocabularyCardEditSheet(
             card: VocabularyCard(source: "obrigado", translation: "спасибо", sourceLanguage: "pt")
         ) { _, _, _ in }
+        .environmentObject(VocabularyStore())
     }
 }
 #endif

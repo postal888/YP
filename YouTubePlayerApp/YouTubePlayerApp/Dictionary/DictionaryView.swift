@@ -170,7 +170,7 @@ struct DictionaryView: View {
     }
 
     private func cardRow(_ card: VocabularyCard) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             Button {
                 editingCard = card
             } label: {
@@ -202,6 +202,12 @@ struct DictionaryView: View {
                             .background(PortTheme.accentSoft)
                             .clipShape(Capsule())
 
+                        if vocabularyStore.hasRecording(for: card.id) {
+                            Label("есть запись", systemImage: "mic.fill")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(PortTheme.accent)
+                        }
+
                         Spacer()
 
                         Text(card.createdAt, style: .date)
@@ -209,45 +215,71 @@ struct DictionaryView: View {
                             .foregroundStyle(PortTheme.textMuted)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
 
-            VStack(spacing: 8) {
-                Button {
-                    recordingCard = card
-                } label: {
-                    Image(systemName: vocabularyStore.hasRecording(for: card.id) ? "mic.circle.fill" : "mic.circle")
-                        .foregroundStyle(vocabularyStore.hasRecording(for: card.id) ? PortTheme.accent : PortTheme.textSubtle)
-                }
-                .buttonStyle(.plain)
-                .disabled(recorderService.isRecording && recorderService.recordingWordID != card.id)
-                .accessibilityLabel(vocabularyStore.hasRecording(for: card.id) ? "Открыть запись" : "Записать слово")
+            Divider().overlay(PortTheme.border)
 
-                Button {
+            HStack(spacing: 8) {
+                cardActionButton(
+                    title: "Диктофон",
+                    systemImage: vocabularyStore.hasRecording(for: card.id) ? "mic.fill" : "mic",
+                    tint: vocabularyStore.hasRecording(for: card.id) ? PortTheme.accent : PortTheme.textSubtle
+                ) {
+                    recordingCard = card
+                }
+                .disabled(recorderService.isRecording && recorderService.recordingWordID != card.id)
+
+                cardActionButton(
+                    title: "Озвучить",
+                    systemImage: ttsService.playingCardID == card.id ? "speaker.wave.2.fill" : "speaker.wave.2",
+                    tint: PortTheme.accent
+                ) {
                     ttsService.speak(
                         text: card.source,
                         languageCode: card.sourceLanguage,
                         cardID: card.id,
                         settings: appSettings
                     )
-                } label: {
-                    Image(systemName: ttsService.playingCardID == card.id ? "speaker.wave.2.fill" : "speaker.wave.2")
-                        .foregroundStyle(PortTheme.accent)
                 }
-                .buttonStyle(.plain)
                 .disabled(ttsService.isPlaying && ttsService.playingCardID != card.id)
 
-                Button(role: .destructive) {
+                Spacer(minLength: 0)
+
+                cardActionButton(
+                    title: "Удалить",
+                    systemImage: "trash",
+                    tint: PortTheme.danger
+                ) {
                     vocabularyStore.remove(card)
-                } label: {
-                    Image(systemName: "trash")
-                        .foregroundStyle(PortTheme.danger)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(12)
         .portCard()
+    }
+
+    private func cardActionButton(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.body.weight(.semibold))
+                Text(title)
+                    .font(.caption2.weight(.medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(tint)
+            .frame(minWidth: 64, minHeight: 44)
+            .padding(.horizontal, 4)
+        }
+        .buttonStyle(.plain)
     }
 
     private var emptyState: some View {
