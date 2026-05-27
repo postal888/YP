@@ -78,7 +78,8 @@ final class VocabularyStore: ObservableObject {
                 bookTitle: bookTitle ?? cards[index].bookTitle,
                 folderKey: resolvedFolderKey,
                 example: example ?? cards[index].example,
-                createdAt: cards[index].createdAt
+                createdAt: cards[index].createdAt,
+                recording: cards[index].recording
             )
             cards[index] = updated
             persist()
@@ -113,7 +114,8 @@ final class VocabularyStore: ObservableObject {
             bookTitle: card.bookTitle,
             folderKey: card.resolvedFolderKey,
             example: example,
-            createdAt: card.createdAt
+            createdAt: card.createdAt,
+            recording: card.recording
         )
         cards[index] = updated
         persist()
@@ -136,12 +138,60 @@ final class VocabularyStore: ObservableObject {
     }
 
     func remove(_ card: VocabularyCard) {
+        DictionaryAudioStorage.deleteRecording(for: card.id)
         cards.removeAll { $0.id == card.id }
         persist()
     }
 
     func remove(at offsets: IndexSet) {
+        for index in offsets {
+            DictionaryAudioStorage.deleteRecording(for: cards[index].id)
+        }
         cards.remove(atOffsets: offsets)
+        persist()
+    }
+
+    func hasRecording(for cardID: UUID) -> Bool {
+        guard let card = cards.first(where: { $0.id == cardID }) else { return false }
+        return card.hasRecording && DictionaryAudioStorage.recordingExists(for: cardID)
+    }
+
+    func recording(for cardID: UUID) -> DictionaryWordRecording? {
+        cards.first(where: { $0.id == cardID })?.recording
+    }
+
+    func setRecording(for cardID: UUID, recording: DictionaryWordRecording) {
+        guard let index = cards.firstIndex(where: { $0.id == cardID }) else { return }
+        let card = cards[index]
+        cards[index] = VocabularyCard(
+            id: card.id,
+            source: card.source,
+            translation: card.translation,
+            sourceLanguage: card.sourceLanguage,
+            bookTitle: card.bookTitle,
+            folderKey: card.resolvedFolderKey,
+            example: card.example,
+            createdAt: card.createdAt,
+            recording: recording
+        )
+        persist()
+    }
+
+    func clearRecording(for cardID: UUID) {
+        guard let index = cards.firstIndex(where: { $0.id == cardID }) else { return }
+        DictionaryAudioStorage.deleteRecording(for: cardID)
+        let card = cards[index]
+        cards[index] = VocabularyCard(
+            id: card.id,
+            source: card.source,
+            translation: card.translation,
+            sourceLanguage: card.sourceLanguage,
+            bookTitle: card.bookTitle,
+            folderKey: card.resolvedFolderKey,
+            example: card.example,
+            createdAt: card.createdAt,
+            recording: nil
+        )
         persist()
     }
 

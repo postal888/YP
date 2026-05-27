@@ -5,9 +5,11 @@ struct DictionaryView: View {
     @EnvironmentObject private var vocabularyStore: VocabularyStore
     @EnvironmentObject private var appSettings: AppSettings
     @ObservedObject private var ttsService = WordTTSService.shared
+    @ObservedObject private var recorderService = DictionaryAudioRecorderService.shared
 
     @State private var searchText = ""
     @State private var editingCard: VocabularyCard?
+    @State private var recordingCard: VocabularyCard?
     @State private var renamingFolder: VocabularyFolderGroup?
     @State private var expandedFolderKeys: Set<String> = []
 
@@ -59,6 +61,9 @@ struct DictionaryView: View {
                 VocabularyCardEditSheet(card: card) { source, translation, example in
                     vocabularyStore.update(card, source: source, translation: translation, example: example)
                 }
+            }
+            .sheet(item: $recordingCard) { card in
+                DictionaryWordRecorderPanel(card: card, vocabularyStore: vocabularyStore)
             }
             .sheet(item: $renamingFolder) { folder in
                 VocabularyFolderRenameSheet(
@@ -208,6 +213,16 @@ struct DictionaryView: View {
             .buttonStyle(.plain)
 
             VStack(spacing: 8) {
+                Button {
+                    recordingCard = card
+                } label: {
+                    Image(systemName: vocabularyStore.hasRecording(for: card.id) ? "mic.circle.fill" : "mic.circle")
+                        .foregroundStyle(vocabularyStore.hasRecording(for: card.id) ? PortTheme.accent : PortTheme.textSubtle)
+                }
+                .buttonStyle(.plain)
+                .disabled(recorderService.isRecording && recorderService.recordingWordID != card.id)
+                .accessibilityLabel(vocabularyStore.hasRecording(for: card.id) ? "Открыть запись" : "Записать слово")
+
                 Button {
                     ttsService.speak(
                         text: card.source,

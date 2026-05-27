@@ -9,6 +9,7 @@ struct VocabularyCard: Identifiable, Codable, Equatable {
     let folderKey: String?
     let example: String?
     let createdAt: Date
+    let recording: DictionaryWordRecording?
 
     init(
         id: UUID = UUID(),
@@ -18,7 +19,8 @@ struct VocabularyCard: Identifiable, Codable, Equatable {
         bookTitle: String? = nil,
         folderKey: String? = nil,
         example: String? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        recording: DictionaryWordRecording? = nil
     ) {
         self.id = id
         self.source = source
@@ -28,6 +30,11 @@ struct VocabularyCard: Identifiable, Codable, Equatable {
         self.folderKey = folderKey
         self.example = example
         self.createdAt = createdAt
+        self.recording = recording
+    }
+
+    var hasRecording: Bool {
+        recording != nil
     }
 
     var lookupKey: String {
