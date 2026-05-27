@@ -12,6 +12,9 @@ struct DictionaryView: View {
     @State private var recordingCard: VocabularyCard?
     @State private var renamingFolder: VocabularyFolderGroup?
     @State private var expandedFolderKeys: Set<String> = []
+    @State private var csvShareItem: ShareableFile?
+    @State private var showExportError = false
+    @State private var exportErrorMessage = ""
 
     private var filteredCards: [VocabularyCard] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -81,29 +84,80 @@ struct DictionaryView: View {
                     expandedFolderKeys.insert(folder.key)
                 }
             }
+            .sheet(item: $csvShareItem) { item in
+                ShareSheet(items: [item.url])
+            }
+            .alert("Не удалось экспортировать", isPresented: $showExportError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(exportErrorMessage)
+            }
         }
         .navigationViewStyle(.stack)
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Image(systemName: "rectangle.stack.fill")
-                    .font(.title2)
-                    .foregroundStyle(PortTheme.accent)
-                Text("Словарь")
-                    .font(.title2.bold())
-                    .foregroundStyle(PortTheme.heading)
-            }
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "rectangle.stack.fill")
+                            .font(.title2)
+                            .foregroundStyle(PortTheme.accent)
+                        Text("Словарь")
+                            .font(.title2.bold())
+                            .foregroundStyle(PortTheme.heading)
+                    }
 
-            Text("\(vocabularyStore.cards.count) карточек · \(folders.count) папок")
-                .font(.subheadline)
-                .foregroundStyle(PortTheme.textMuted)
+                    Text(headerSubtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(PortTheme.textMuted)
+                }
+
+                Spacer(minLength: 0)
+
+                if !vocabularyStore.cards.isEmpty {
+                    Button(action: exportDictionaryCSV) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.body.weight(.semibold))
+                            Text("CSV")
+                                .font(.caption2.weight(.medium))
+                        }
+                        .foregroundStyle(PortTheme.accent)
+                        .frame(minWidth: 52, minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Экспорт словаря в CSV")
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 16)
+    }
+
+    private var headerSubtitle: String {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if query.isEmpty {
+            return "\(vocabularyStore.cards.count) карточек · \(folders.count) папок"
+        }
+        return "\(filteredCards.count) из \(vocabularyStore.cards.count) карточек · \(folders.count) папок"
+    }
+
+    private func exportDictionaryCSV() {
+        do {
+            let url = try DictionaryCSVExportService.shared.exportCSV(
+                cards: filteredCards,
+                folderName: { vocabularyStore.folderDisplayName(for: $0.resolvedFolderKey) },
+                hasRecording: { vocabularyStore.hasRecording(for: $0) }
+            )
+            csvShareItem = ShareableFile(url: url)
+        } catch {
+            exportErrorMessage = error.localizedDescription
+            showExportError = true
+        }
     }
 
     private func folderSection(_ folder: VocabularyFolderGroup) -> some View {

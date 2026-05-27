@@ -15,7 +15,7 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
     @Published var showAlert = false
     @Published var alertTitle = ""
     @Published var alertMessage = ""
-    @Published var shareItem: ShareableAudioFile?
+    @Published var shareItem: ShareableFile?
 
     private let card: VocabularyCard
     private let vocabularyStore: VocabularyStore
@@ -105,7 +105,7 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
         let sourceURL = DictionaryAudioStorage.recordingURL(for: card.id)
         let fileName = DictionaryAudioStorage.sanitizedExportName(from: card.source, fileExtension: "m4a")
         do {
-            shareItem = ShareableAudioFile(url: try exportService.exportM4A(from: sourceURL, suggestedName: fileName))
+            shareItem = ShareableFile(url: try exportService.exportM4A(from: sourceURL, suggestedName: fileName))
         } catch {
             presentError(error)
         }
@@ -117,7 +117,7 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
             let fileName = DictionaryAudioStorage.sanitizedExportName(from: card.source, fileExtension: "mp3")
             do {
                 let url = try await exportService.exportMP3(from: sourceURL, suggestedName: fileName)
-                shareItem = ShareableAudioFile(url: url)
+                shareItem = ShareableFile(url: url)
             } catch {
                 presentError(error)
             }
@@ -138,9 +138,4 @@ final class DictionaryWordRecordingViewModel: ObservableObject {
         alertMessage = error.localizedDescription
         showAlert = true
     }
-}
-
-struct ShareableAudioFile: Identifiable {
-    let id = UUID()
-    let url: URL
 }

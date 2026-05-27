@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+struct ShareableFile: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     var excludedActivityTypes: [UIActivity.ActivityType]? = nil

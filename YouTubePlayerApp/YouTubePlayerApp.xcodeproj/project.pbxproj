@@ -64,6 +64,7 @@
 		2A0000010000000000000091 /* DictionaryWordRecordingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000090 /* DictionaryWordRecordingViewModel.swift */; };
 		2A0000010000000000000093 /* DictionaryWordRecorderPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000092 /* DictionaryWordRecorderPanel.swift */; };
 		2A0000010000000000000095 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000094 /* ShareSheet.swift */; };
+		2A0000010000000000000097 /* DictionaryCSVExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000096 /* DictionaryCSVExportService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -124,6 +125,7 @@
 		2A0000010000000000000090 /* DictionaryWordRecordingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryWordRecordingViewModel.swift; sourceTree = "<group>"; };
 		2A0000010000000000000092 /* DictionaryWordRecorderPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryWordRecorderPanel.swift; sourceTree = "<group>"; };
 		2A0000010000000000000094 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		2A0000010000000000000096 /* DictionaryCSVExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryCSVExportService.swift; sourceTree = "<group>"; };
 		2A000001000000000000007B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -220,6 +222,7 @@
 				2A000001000000000000008A /* DictionaryAudioPlayerService.swift */,
 				2A000001000000000000008C /* AudioTranscodingService.swift */,
 				2A000001000000000000008E /* DictionaryAudioExportService.swift */,
+				2A0000010000000000000096 /* DictionaryCSVExportService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -460,6 +463,7 @@
 				2A0000010000000000000091 /* DictionaryWordRecordingViewModel.swift in Sources */,
 				2A0000010000000000000093 /* DictionaryWordRecorderPanel.swift in Sources */,
 				2A0000010000000000000095 /* ShareSheet.swift in Sources */,
+				2A0000010000000000000097 /* DictionaryCSVExportService.swift in Sources */,
 				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
 				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
 			);
