@@ -144,10 +144,10 @@
 				2A0000010000000000000005 /* ContentView.swift */,
 				2A0000010000000000000053 /* YouTube */,
 				2A0000010000000000000067 /* Navigation */,
-				2A000001000000000000007A /* Account */,
-				2A0000010000000000000077 /* Settings */,
-				2A0000010000000000000078 /* Services */,
-				2A0000010000000000000079 /* Stats */,
+				2A0000010000000000000083 /* Account */,
+				2A0000010000000000000080 /* Settings */,
+				2A0000010000000000000081 /* Services */,
+				2A0000010000000000000082 /* Stats */,
 				2A0000010000000000000041 /* Home */,
 				2A0000010000000000000068 /* Study */,
 				2A0000010000000000000054 /* Reader */,
@@ -184,7 +184,7 @@
 			path = Study;
 			sourceTree = "<group>";
 		};
-		2A0000010000000000000077 /* Settings */ = {
+		2A0000010000000000000080 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
 				2A0000010000000000000069 /* AppSettings.swift */,
@@ -192,7 +192,7 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		2A0000010000000000000078 /* Services */ = {
+		2A0000010000000000000081 /* Services */ = {
 			isa = PBXGroup;
 			children = (
 				2A000001000000000000006B /* PortuPrepBackendService.swift */,
@@ -201,7 +201,7 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		2A0000010000000000000079 /* Stats */ = {
+		2A0000010000000000000082 /* Stats */ = {
 			isa = PBXGroup;
 			children = (
 				2A000001000000000000006F /* LearningStatsStore.swift */,
@@ -209,7 +209,7 @@
 			path = Stats;
 			sourceTree = "<group>";
 		};
-		2A000001000000000000007A /* Account */ = {
+		2A0000010000000000000083 /* Account */ = {
 			isa = PBXGroup;
 			children = (
 				2A0000010000000000000071 /* AccountTabScreen.swift */,
