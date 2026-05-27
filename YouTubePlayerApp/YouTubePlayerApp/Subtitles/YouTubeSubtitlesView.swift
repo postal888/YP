@@ -12,8 +12,11 @@ struct YouTubeSubtitlesView: View {
     let onWordTranslated: (WordTranslationEntry) -> Void
     let onTranslationError: (String) -> Void
 
+    @EnvironmentObject private var vocabularyStore: VocabularyStore
+
     @State private var userScrollUntil: Date = .distantPast
     @State private var activeWord: ActiveSubtitleWord?
+    @State private var savedPreviewWordKey: String?
 
     init(
         lines: [YouTubeSubtitleLine],
@@ -88,11 +91,56 @@ struct YouTubeSubtitlesView: View {
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(PortTheme.heading)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let entry = translationEntry(from: text) {
+                if vocabularyStore.contains(source: entry.source) || savedPreviewWordKey == entry.source {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(PortTheme.accent)
+                } else {
+                    Button {
+                        addToVocabulary(entry)
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(PortTheme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Добавить в словарь")
+                }
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(PortTheme.accentSoft)
         .clipShape(RoundedRectangle(cornerRadius: PortTheme.radiusMD, style: .continuous))
+        .onChange(of: activeWord) { _ in
+            savedPreviewWordKey = nil
+        }
+    }
+
+    private func translationEntry(from preview: String) -> WordTranslationEntry? {
+        guard !isTranslating else { return nil }
+        guard let range = preview.range(of: " — ") else { return nil }
+        let translation = String(preview[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !translation.isEmpty, translation != "…" else { return nil }
+
+        let source = activeWord?.lookupKey
+            ?? String(preview[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !source.isEmpty else { return nil }
+
+        return WordTranslationEntry(source: source, translation: translation)
+    }
+
+    private func addToVocabulary(_ entry: WordTranslationEntry) {
+        vocabularyStore.add(
+            source: entry.source,
+            translation: entry.translation,
+            sourceLanguage: sourceLanguage,
+            bookTitle: "YouTube"
+        )
+        savedPreviewWordKey = entry.source
+        onWordTranslated(entry)
     }
 
     @ViewBuilder

@@ -2,24 +2,23 @@ import SwiftUI
 
 @MainActor
 struct YouTubeRootView: View {
+    @ObservedObject var session: YouTubeSessionStore
     @ObservedObject var errorLog: AppErrorLog
-
-    @State private var selectedVideoID: String?
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 ZStack {
                     HomeView(errorLog: errorLog) { videoID in
-                        selectedVideoID = videoID
+                        session.openVideo(videoID)
                     }
 
                     NavigationLink(
                         destination: playerDestination,
                         tag: "player",
                         selection: Binding(
-                            get: { selectedVideoID == nil ? nil : "player" },
-                            set: { if $0 == nil { selectedVideoID = nil } }
+                            get: { session.selectedVideoID == nil ? nil : "player" },
+                            set: { if $0 == nil { session.closePlayer() } }
                         )
                     ) {
                         EmptyView()
@@ -27,7 +26,7 @@ struct YouTubeRootView: View {
                     .hidden()
                 }
 
-                if selectedVideoID == nil {
+                if session.selectedVideoID == nil {
                     ErrorLogPanelView(log: errorLog)
                 }
             }
@@ -39,11 +38,12 @@ struct YouTubeRootView: View {
 
     @ViewBuilder
     private var playerDestination: some View {
-        if let videoID = selectedVideoID {
+        if let videoID = session.selectedVideoID {
             LessonPlayerView(
                 videoID: videoID,
+                session: session,
                 errorLog: errorLog,
-                onClose: { selectedVideoID = nil }
+                onClose: { session.closePlayer() }
             )
         } else {
             EmptyView()

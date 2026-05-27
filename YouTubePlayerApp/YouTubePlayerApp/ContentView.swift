@@ -2,11 +2,14 @@ import SwiftUI
 
 @MainActor
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
+
     @StateObject private var errorLog = AppErrorLog()
     @StateObject private var vocabularyStore = VocabularyStore()
     @StateObject private var bookLibrary = BookLibraryStore()
     @StateObject private var appSettings = AppSettings()
     @StateObject private var learningStats = LearningStatsStore()
+    @StateObject private var youtubeSession = YouTubeSessionStore()
     @State private var selectedTab: AppTab = .home
 
     var body: some View {
@@ -22,30 +25,54 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .accentColor(PortTheme.accent)
         .background(PortTheme.background.ignoresSafeArea())
+        .onAppear {
+            youtubeSession.applyBackgroundPlaybackPolicy(enabled: appSettings.backgroundVideoPlayback)
+        }
+        .onChange(of: appSettings.backgroundVideoPlayback) { enabled in
+            youtubeSession.applyBackgroundPlaybackPolicy(enabled: enabled)
+            if !enabled, selectedTab != .video {
+                youtubeSession.pause()
+            }
+        }
+        .onChange(of: selectedTab) { newTab in
+            if newTab != .video, !appSettings.backgroundVideoPlayback {
+                youtubeSession.pause()
+            }
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .background, !appSettings.backgroundVideoPlayback {
+                youtubeSession.pause()
+            }
+        }
     }
 
-    @ViewBuilder
     private var tabContent: some View {
-        switch selectedTab {
-        case .home:
+        ZStack {
             HomeTabScreen { tab in
                 selectedTab = tab
             }
+            .zIndex(selectedTab == .home ? 1 : 0)
+            .allowsHitTesting(selectedTab == .home)
 
-        case .study:
             StudyTabScreen()
+                .zIndex(selectedTab == .study ? 1 : 0)
+                .allowsHitTesting(selectedTab == .study)
 
-        case .reader:
             BooksLibraryView()
+                .zIndex(selectedTab == .reader ? 1 : 0)
+                .allowsHitTesting(selectedTab == .reader)
 
-        case .video:
-            YouTubeRootView(errorLog: errorLog)
+            YouTubeRootView(session: youtubeSession, errorLog: errorLog)
+                .zIndex(selectedTab == .video ? 1 : 0)
+                .allowsHitTesting(selectedTab == .video)
 
-        case .dictionary:
             DictionaryView()
+                .zIndex(selectedTab == .dictionary ? 1 : 0)
+                .allowsHitTesting(selectedTab == .dictionary)
 
-        case .account:
             AccountTabScreen()
+                .zIndex(selectedTab == .account ? 1 : 0)
+                .allowsHitTesting(selectedTab == .account)
         }
     }
 }

@@ -77,7 +77,7 @@ struct RecentTranslationsView: View {
                         bookTitle: "YouTube"
                     )
                 } label: {
-                    Image(systemName: "plus.circle")
+                    Image(systemName: "plus.circle.fill")
                         .font(.body)
                         .foregroundStyle(PortTheme.accent)
                 }

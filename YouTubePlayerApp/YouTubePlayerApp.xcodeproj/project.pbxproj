@@ -51,6 +51,7 @@
 		2A0000010000000000000072 /* AccountTabScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000071 /* AccountTabScreen.swift */; };
 		2A0000010000000000000074 /* QuizPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000073 /* QuizPanelView.swift */; };
 		2A0000010000000000000076 /* VocabularyCardEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000075 /* VocabularyCardEditSheet.swift */; };
+		2A0000010000000000000078 /* YouTubeSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000010000000000000077 /* YouTubeSessionStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -98,6 +99,8 @@
 		2A0000010000000000000071 /* AccountTabScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountTabScreen.swift; sourceTree = "<group>"; };
 		2A0000010000000000000073 /* QuizPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuizPanelView.swift; sourceTree = "<group>"; };
 		2A0000010000000000000075 /* VocabularyCardEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyCardEditSheet.swift; sourceTree = "<group>"; };
+		2A0000010000000000000077 /* YouTubeSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSessionStore.swift; sourceTree = "<group>"; };
+		2A000001000000000000007B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,6 +155,7 @@
 				2A000001000000000000001B /* AppErrorLog.swift */,
 				2A000001000000000000001D /* ErrorLogPanelView.swift */,
 				2A0000010000000000000007 /* Assets.xcassets */,
+				2A000001000000000000007B /* Info.plist */,
 			);
 			path = YouTubePlayerApp;
 			sourceTree = "<group>";
@@ -211,6 +215,7 @@
 			isa = PBXGroup;
 			children = (
 				2A0000010000000000000051 /* YouTubeRootView.swift */,
+				2A0000010000000000000077 /* YouTubeSessionStore.swift */,
 			);
 			path = YouTube;
 			sourceTree = "<group>";
@@ -406,6 +411,7 @@
 				2A0000010000000000000072 /* AccountTabScreen.swift in Sources */,
 				2A0000010000000000000074 /* QuizPanelView.swift in Sources */,
 				2A0000010000000000000076 /* VocabularyCardEditSheet.swift in Sources */,
+				2A0000010000000000000078 /* YouTubeSessionStore.swift in Sources */,
 				2A000001000000000000001C /* AppErrorLog.swift in Sources */,
 				2A000001000000000000001E /* ErrorLogPanelView.swift in Sources */,
 			);
@@ -472,6 +478,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = YouTubePlayerApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "YouTube Player";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -504,6 +511,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = YouTubePlayerApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "YouTube Player";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

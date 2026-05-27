@@ -61,6 +61,9 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
         view.onLinkHover = { url, interaction in
             context.coordinator.handleLink(url, interaction: interaction, persistRecent: false)
         }
+        view.onLinkTap = { url in
+            context.coordinator.handleLink(url, interaction: .invokeDefaultAction, persistRecent: true)
+        }
         view.backgroundColor = .clear
         view.textContainerInset = .zero
         view.textContainer.lineFragmentPadding = 0
@@ -78,6 +81,9 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
         context.coordinator.parent = self
         uiView.onLinkHover = { url, _ in
             context.coordinator.handleLink(url, interaction: .preview, persistRecent: false)
+        }
+        uiView.onLinkTap = { url in
+            context.coordinator.handleLink(url, interaction: .invokeDefaultAction, persistRecent: true)
         }
         updateContent(in: uiView)
     }
@@ -134,6 +140,7 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: TappableSubtitleTextRepresentable
+        private var lastHandledLinkAt: Date = .distantPast
 
         init(parent: TappableSubtitleTextRepresentable) {
             self.parent = parent
@@ -145,7 +152,7 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
             in characterRange: NSRange,
             interaction: UITextItemInteraction
         ) -> Bool {
-            handleLink(URL, interaction: interaction, persistRecent: interaction == .invokeDefaultAction)
+            handleLink(URL, interaction: interaction, persistRecent: true)
             return false
         }
 
@@ -153,6 +160,10 @@ private struct TappableSubtitleTextRepresentable: UIViewRepresentable {
             guard url.scheme == "subtitleword", let lookupKey = url.host?.removingPercentEncoding else {
                 return
             }
+
+            let now = Date()
+            guard now.timeIntervalSince(lastHandledLinkAt) > 0.35 else { return }
+            lastHandledLinkAt = now
 
             let display = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                 .queryItems?
@@ -212,9 +223,13 @@ private extension TappableSubtitleTextRepresentable {
 
 private final class TappableSubtitleTextView: UITextView {
     var onLinkHover: ((URL, UITextItemInteraction) -> Void)?
+    var onLinkTap: ((URL) -> Void)?
 
     override init(frame: CGRect, textContainer: NSTextContainer?) {
         super.init(frame: frame, textContainer: textContainer)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tap.delegate = self
+        addGestureRecognizer(tap)
         if #available(iOS 13.4, *) {
             let hover = UIHoverGestureRecognizer(target: self, action: #selector(handleHover(_:)))
             addGestureRecognizer(hover)
@@ -231,6 +246,13 @@ private final class TappableSubtitleTextView: UITextView {
         let point = recognizer.location(in: self)
         guard let url = linkURL(at: point) else { return }
         onLinkHover?(url, .preview)
+    }
+
+    @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
+        guard recognizer.state == .ended else { return }
+        let point = recognizer.location(in: self)
+        guard let url = linkURL(at: point) else { return }
+        onLinkTap?(url)
     }
 
     private func linkURL(at point: CGPoint) -> URL? {
@@ -251,5 +273,11 @@ private final class TappableSubtitleTextView: UITextView {
     override func layoutSubviews() {
         super.layoutSubviews()
         invalidateIntrinsicContentSize()
+    }
+}
+
+extension TappableSubtitleTextView: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        true
     }
 }

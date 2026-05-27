@@ -85,6 +85,18 @@ struct AccountTabScreen: View {
                 }
                 .tint(PortTheme.accent)
 
+                Toggle(isOn: $appSettings.backgroundVideoPlayback) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Фоновое воспроизведение")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(PortTheme.heading)
+                        Text("Видео продолжит играть при переключении на другие вкладки и в фоне приложения.")
+                            .font(.caption)
+                            .foregroundStyle(PortTheme.textMuted)
+                    }
+                }
+                .tint(PortTheme.accent)
+
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Сервер")
                         .font(.caption.weight(.semibold))

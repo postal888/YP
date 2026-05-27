@@ -5,12 +5,13 @@ import YouTubePlayerKit
 @MainActor
 struct LessonPlayerView: View {
     let videoID: String
+    @ObservedObject var session: YouTubeSessionStore
     @ObservedObject var errorLog: AppErrorLog
     var onClose: (() -> Void)? = nil
 
     @Environment(\.presentationMode) private var presentationMode
 
-    @StateObject private var playerHolder = YouTubePlayerHolder()
+    private var playerHolder: YouTubePlayerHolder { session.playerHolder }
     @State private var watchedSeconds: Double = 0
     @State private var lessonCompleted = false
     @State private var subtitleLines: [YouTubeSubtitleLine] = []
@@ -145,11 +146,11 @@ struct LessonPlayerView: View {
             )
         }
         .onChange(of: videoID) { newID in
-            playerHolder.load(videoID: newID, captionLanguage: selectedLanguage.rawValue)
+            playerHolder.load(videoID: newID, captionLanguage: selectedLanguage.rawValue, force: true)
             resetWatchState()
         }
         .onChange(of: selectedLanguage) { newLang in
-            playerHolder.load(videoID: videoID, captionLanguage: newLang.rawValue)
+            playerHolder.load(videoID: videoID, captionLanguage: newLang.rawValue, force: true)
         }
     }
 
@@ -353,6 +354,7 @@ struct LessonPlayerView: View {
 #Preview {
     LessonPlayerView(
         videoID: "ysz5S6PUM-U",
+        session: YouTubeSessionStore(),
         errorLog: AppErrorLog()
     )
 }

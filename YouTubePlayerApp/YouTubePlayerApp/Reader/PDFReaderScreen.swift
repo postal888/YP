@@ -136,23 +136,27 @@ struct PDFReaderScreen: View {
                     }
 
                     Spacer()
-                }
 
-                if let activeWord, let translationText, !isTranslating, translationError == nil {
-                    HStack(spacing: 10) {
+                    if let activeWord,
+                       let translationText,
+                       !isTranslating,
+                       translationError == nil,
+                       let translation = extractedTranslation(from: translationText),
+                       !translation.isEmpty {
                         if didSaveCurrentWord || vocabularyStore.contains(source: activeWord.lookupKey) {
-                            Label("В словаре", systemImage: "checkmark.circle.fill")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(PortTheme.successText)
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.body)
+                                .foregroundStyle(PortTheme.accent)
                         } else {
                             Button {
-                                saveToVocabulary(word: activeWord, translation: extractedTranslation(from: translationText))
+                                saveToVocabulary(word: activeWord, translation: translation)
                             } label: {
-                                Label("Добавить в словарь", systemImage: "plus.circle.fill")
-                                    .font(.caption.weight(.semibold))
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.body)
+                                    .foregroundStyle(PortTheme.accent)
                             }
-                            .buttonStyle(.borderedProminent)
-                            .tint(PortTheme.accent)
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Добавить в словарь")
                         }
                     }
                 }
@@ -208,8 +212,16 @@ struct PDFReaderScreen: View {
     }
 
     private func extractedTranslation(from line: String) -> String {
-        guard let range = line.range(of: " — ") else { return line }
-        return String(line[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        if let range = line.range(of: " — ") {
+            return String(line[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let range = line.range(of: " - ") {
+            return String(line[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let range = line.range(of: " – ") {
+            return String(line[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return line.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func saveToVocabulary(word: PDFReaderWordTap, translation: String) {

@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Combine
 import YouTubePlayerKit
@@ -31,6 +32,8 @@ final class YouTubePlayerHolder: ObservableObject {
     private var onEnded: (() -> Void)?
     private var onError: ((String) -> Void)?
     private var onDebug: ((String) -> Void)?
+    private var loadedVideoID: String?
+    private var loadedCaptionLanguage: String?
 
     @Published private(set) var isPlaying = false
 
@@ -45,20 +48,47 @@ final class YouTubePlayerHolder: ObservableObject {
         onError: @escaping (String) -> Void,
         onDebug: @escaping (String) -> Void
     ) {
+        updateHandlers(
+            onProgress: onProgress,
+            onState: onState,
+            onEnded: onEnded,
+            onError: onError,
+            onDebug: onDebug
+        )
+
+        if cancellables.isEmpty {
+            subscribeToState()
+            subscribeToPlaybackState()
+            startTimer()
+        }
+
+        load(videoID: videoID, captionLanguage: captionLanguage)
+    }
+
+    func updateHandlers(
+        onProgress: @escaping (Double, Double) -> Void,
+        onState: @escaping (String) -> Void,
+        onEnded: @escaping () -> Void,
+        onError: @escaping (String) -> Void,
+        onDebug: @escaping (String) -> Void
+    ) {
         self.onProgress = onProgress
         self.onState = onState
         self.onEnded = onEnded
         self.onError = onError
         self.onDebug = onDebug
-
-        subscribeToState()
-        subscribeToPlaybackState()
-        startTimer()
-
-        load(videoID: videoID, captionLanguage: captionLanguage)
     }
 
-    func load(videoID: String, captionLanguage: String) {
+    func load(videoID: String, captionLanguage: String, force: Bool = false) {
+        if !force,
+           loadedVideoID == videoID,
+           loadedCaptionLanguage == captionLanguage {
+            return
+        }
+
+        loadedVideoID = videoID
+        loadedCaptionLanguage = captionLanguage
+
         var parameters = player.parameters
         parameters.language = captionLanguage
         parameters.captionLanguage = captionLanguage
@@ -72,6 +102,20 @@ final class YouTubePlayerHolder: ObservableObject {
             } catch {
                 self.onError?("load failed: \(error.localizedDescription)")
             }
+        }
+    }
+
+    func applyBackgroundPlaybackPolicy(enabled: Bool) {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            if enabled {
+                try session.setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetoothA2DP])
+            } else {
+                try session.setCategory(.soloAmbient, mode: .default)
+            }
+            try session.setActive(true)
+        } catch {
+            onDebug?("audio session: \(error.localizedDescription)")
         }
     }
 
