@@ -48,7 +48,7 @@ struct DictionaryCSVExportService {
     ) throws -> URL {
         guard !cards.isEmpty else { throw DictionaryCSVExportError.emptyVocabulary }
 
-        var lines = [headers.joined(separator: ",")]
+        var lines = [Self.headers.joined(separator: ",")]
         lines.reserveCapacity(cards.count + 1)
 
         for card in cards {
@@ -75,7 +75,7 @@ struct DictionaryCSVExportService {
         }
 
         do {
-            try csvData.write(to: destination, options: .atomic)
+            try csvData.write(to: destination, options: Data.WritingOptions.atomic)
             return destination
         } catch {
             throw DictionaryCSVExportError.writeFailed(error.localizedDescription)
